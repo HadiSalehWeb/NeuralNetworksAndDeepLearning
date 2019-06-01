@@ -14,7 +14,7 @@ namespace NeuralNetowrksAndDeepLearning.Demo.Demoer
         const string TEST_IMAGES_PATH = @"C:\Users\hadis\source\repos\NeuralNetowrksAndDeepLearning\Demo\Training Data\t10k-images.idx3-ubyte";
         const string TEST_LABELS_PATH = @"C:\Users\hadis\source\repos\NeuralNetowrksAndDeepLearning\Demo\Training Data\t10k-labels.idx1-ubyte";
         const int INPUT_COUNT = 784;
-        const int HIDDEN_COUNT = 15;
+        const int HIDDEN_COUNT = 30;
         const int OUTPUT_COUNT = 10;
         const double LEARNING_RATE = 3.0;
 
@@ -47,6 +47,7 @@ namespace NeuralNetowrksAndDeepLearning.Demo.Demoer
                 if (activations[i] > maxActivation) (maxActivation, maxActivationIndex) = (activations[i], i);
                 if (output[i] == 1.0) maxOutputIndex = i;
             }
+            if (maxOutputIndex < 0 || maxActivationIndex < 0) throw new Exception("Yo what the fuck");
             return maxActivationIndex == maxOutputIndex;
         }
 

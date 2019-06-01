@@ -26,7 +26,7 @@ namespace NeuralNetowrksAndDeepLearning
                 Weights.Add(new double[layers[i + 1], layers[i] + 1]);
                 for (int x = 0; x < layers[i + 1]; x++)
                     for (int y = 0; y < layers[i] + 1; y++)
-                        Weights[i][x, y] = rand.NextDouble();
+                        Weights[i][x, y] = rand.NextDouble() * 3.0 - 1.5;
             }
         }
 
@@ -37,7 +37,7 @@ namespace NeuralNetowrksAndDeepLearning
             if (weights == null || weights.Any(l => l == null)) throw new ArgumentNullException(nameof(weights));
 
             if (weights.Count <= 0) throw new ArgumentException("The network must contain at least two layers.", nameof(weights));
-            if (weights[0].GetLength(1) <= 1 || weights.Any(l => l.GetLength(0) <= 1)) throw new ArgumentException("Each layer of the network must contain at least one neuron.", nameof(weights));
+            if (weights[0].GetLength(1) <= 1 || weights.Any(l => l.GetLength(0) < 1)) throw new ArgumentException("Each layer of the network must contain at least one neuron.", nameof(weights));
 
             Weights = weights;
         }
@@ -100,7 +100,7 @@ namespace NeuralNetowrksAndDeepLearning
             }
         }
 
-        private void UpdateMiniBatch(IEnumerable<ITrainingSample> batch, double learningRate)
+        public void UpdateMiniBatch(IEnumerable<ITrainingSample> batch, double learningRate)
         {
             var delCostOverDelWeights = batch.AsParallel().Select(sample => Backpropagate(sample)).Aggregate((a, c) =>
             {
