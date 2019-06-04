@@ -102,20 +102,29 @@ namespace NeuralNetowrksAndDeepLearning
 
         public void UpdateMiniBatch(IEnumerable<ITrainingSample> batch, double learningRate)
         {
-            var delCostOverDelWeights = batch.AsParallel().Select(sample => Backpropagate(sample)).Aggregate((a, c) =>
+            var neblaWeights = Weights.Select(x => new double[x.GetLength(0), x.GetLength(1)]).ToList();
+            foreach (var sample in batch)
             {
-                for (int l = 0; l < a.Count; l++)
-                    for (int i = 0; i < a[l].GetLength(0); i++)
-                        for (int j = 0; j < a[l].GetLength(1); j++)
-                            a[l][i, j] += c[l][i, j];
+                var deltaWeights = Backpropagate(sample);
+                for (int l = 0; l < neblaWeights.Count; l++)
+                    for (int i = 0; i < neblaWeights[l].GetLength(0); i++)
+                        for (int j = 0; j < neblaWeights[l].GetLength(1); j++)
+                            neblaWeights[l][i, j] += deltaWeights[l][i, j];
+            }
+            //var delCostOverDelWeights = batch.AsParallel().Select(sample => Backpropagate(sample)).Aggregate((a, c) =>
+            //{
+            //    for (int l = 0; l < a.Count; l++)
+            //        for (int i = 0; i < a[l].GetLength(0); i++)
+            //            for (int j = 0; j < a[l].GetLength(1); j++)
+            //                a[l][i, j] += c[l][i, j];
 
-                return a;
-            });
+            //    return a;
+            //});
 
-            foreach (var (weighstLayer, deltaLayer) in Weights.Zip(delCostOverDelWeights, (x, y) => (x, y)))
-                for (int i = 0; i < weighstLayer.GetLength(0); i++)
-                    for (int j = 0; j < weighstLayer.GetLength(1); j++)
-                        weighstLayer[i, j] -= learningRate * deltaLayer[i, j] / batch.Count();
+            for (int l = 0; l < neblaWeights.Count; l++)
+                for (int i = 0; i < Weights[l].GetLength(0); i++)
+                    for (int j = 0; j < Weights[l].GetLength(1); j++)
+                        Weights[l][i, j] -= (learningRate / batch.Count()) * neblaWeights[l][i, j];
         }
 
         /// <summary>
@@ -175,7 +184,7 @@ namespace NeuralNetowrksAndDeepLearning
                 {
                     double value = 0;
                     for (int j = 0; j < Weights[l].GetLength(1) - 1; j++)
-                        value += Weights[l][i, j] * activations[l][i];// weights
+                        value += Weights[l][i, j] * activations[l][j];// weights
                     weightedInputs[l + 1][i] = value + Weights[l][i, Weights[l].GetLength(1) - 1];// bias
                     activations[l + 1][i] = Sigmoid(weightedInputs[l + 1][i]);
                 }
