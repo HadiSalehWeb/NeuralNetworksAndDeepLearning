@@ -11,7 +11,7 @@ namespace NeuralNetowrksAndDeepLearning.Demo
 
         public MNISTSample(byte[] input, byte output)
         {
-            Input = input.Select(x => (double)x).ToArray();
+            Input = input.Select(x => x / 255.0).ToArray();
             Output = Enumerable.Range(0, 10).Select(i => i == output ? 1.0 : 0.0).ToArray();
         }
     }
