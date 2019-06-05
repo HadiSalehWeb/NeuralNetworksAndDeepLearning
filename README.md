@@ -1,4 +1,4 @@
-# NeuralNetowrksAndDeepLearning
+# NeuralNetworksAndDeepLearning
 The Hello World of machine learning, recognizing handwritten digits from the MNIST dataset using neural networks and backpropagation.
 
 ### Credits:

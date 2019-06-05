@@ -3,16 +3,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace NeuralNetowrksAndDeepLearning.Demo.Demoer
+namespace NeuralNetworksAndDeepLearning.Demo.Demoer
 {
     class Program
     {
         const int BATCH_SIZE = 10;
         const int EPOCH_COUNT = 30;
-        const string TRAINING_IMAGES_PATH = @"C:\Users\hadis\source\repos\NeuralNetowrksAndDeepLearning\Demo\Training Data\train-images.idx3-ubyte";
-        const string TRAINING_LABELS_PATH = @"C:\Users\hadis\source\repos\NeuralNetowrksAndDeepLearning\Demo\Training Data\train-labels.idx1-ubyte";
-        const string TEST_IMAGES_PATH = @"C:\Users\hadis\source\repos\NeuralNetowrksAndDeepLearning\Demo\Training Data\t10k-images.idx3-ubyte";
-        const string TEST_LABELS_PATH = @"C:\Users\hadis\source\repos\NeuralNetowrksAndDeepLearning\Demo\Training Data\t10k-labels.idx1-ubyte";
+        const string TRAINING_IMAGES_PATH = @"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\Demo\Training Data\train-images.idx3-ubyte";
+        const string TRAINING_LABELS_PATH = @"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\Demo\Training Data\train-labels.idx1-ubyte";
+        const string TEST_IMAGES_PATH = @"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\Demo\Training Data\t10k-images.idx3-ubyte";
+        const string TEST_LABELS_PATH = @"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\Demo\Training Data\t10k-labels.idx1-ubyte";
         const int INPUT_COUNT = 784;
         const int HIDDEN_COUNT = 30;
         const int OUTPUT_COUNT = 10;
@@ -34,7 +34,7 @@ namespace NeuralNetowrksAndDeepLearning.Demo.Demoer
                 Console.WriteLine($"Finished epoch { i }. Accuracy: { network.Validate(testData, (net, o) => ValidateSample(net, o)) } / { testData.Count() }");
             });
 
-            network.Save(@"C:\Users\hadis\source\repos\NeuralNetowrksAndDeepLearning\Demo\nets\no-hidden.mlp");
+            network.Save(@"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\Demo\nets\no-hidden.mlp");
         }
 
         private static bool ValidateSample(double[] activations, double[] output)

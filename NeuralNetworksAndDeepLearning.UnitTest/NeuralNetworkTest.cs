@@ -2,7 +2,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 
-namespace NeuralNetowrksAndDeepLearning.UnitTest
+namespace NeuralNetworksAndDeepLearning.UnitTest
 {
     [TestClass]
     public class NeuralNetworkTest
