@@ -20,9 +20,9 @@ namespace NeuralNetworksAndDeepLearning.Demo.Demoer
 
         static void Main(string[] args)
         {
-            var network = new NeuralNetwork(new List<int>() { INPUT_COUNT/*, HIDDEN_COUNT*/, OUTPUT_COUNT });
+            var network = new NeuralNetwork(new List<int>() { INPUT_COUNT, HIDDEN_COUNT, OUTPUT_COUNT });
 
-            var rawData = FetchData(TRAINING_LABELS_PATH, TRAINING_IMAGES_PATH);
+            var rawData = FetchData(TRAINING_LABELS_PATH, TRAINING_IMAGES_PATH).Concat(GetNoise(INPUT_COUNT, OUTPUT_COUNT, 60000)).ToArray();
             var trainingData = rawData.Take(50000).ToArray();
             var validationData = rawData.Skip(50000).ToArray();
             var testData = FetchData(TEST_LABELS_PATH, TEST_IMAGES_PATH);
@@ -34,7 +34,23 @@ namespace NeuralNetworksAndDeepLearning.Demo.Demoer
                 Console.WriteLine($"Finished epoch { i }. Accuracy: { network.Validate(testData, (net, o) => ValidateSample(net, o)) } / { testData.Count() }");
             });
 
-            network.Save(@"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\Demo\nets\no-hidden.mlp");
+            network.Save(@"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\Demo\nets\30-hidden-noise.mlp");
+        }
+
+        private static List<TrainingSample> GetNoise(int inputCount, int outputCount, int count)
+        {
+            var badOutput = Enumerable.Range(0, outputCount).Select(x => 0.0).ToArray();
+            var ret = new List<TrainingSample> {
+                new TrainingSample(Enumerable.Range(0, inputCount).Select(x => 0.0).ToArray(), badOutput),
+                new TrainingSample(Enumerable.Range(0, inputCount).Select(x => 1.0).ToArray(), badOutput),
+            };
+
+            var rand = new Random(DateTime.Now.ToString().GetHashCode());
+
+            for (int i = 2; i < count; i++)
+                ret.Add(new TrainingSample(Enumerable.Range(0, inputCount).Select(x => rand.NextDouble()).ToArray(), badOutput));
+
+            return ret;
         }
 
         private static bool ValidateSample(double[] activations, double[] output)
