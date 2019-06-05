@@ -20,7 +20,7 @@ namespace NeuralNetowrksAndDeepLearning.Demo.Demoer
 
         static void Main(string[] args)
         {
-            var network = new NeuralNetwork(new List<int>() { INPUT_COUNT, HIDDEN_COUNT, OUTPUT_COUNT });
+            var network = new NeuralNetwork(new List<int>() { INPUT_COUNT/*, HIDDEN_COUNT*/, OUTPUT_COUNT });
 
             var rawData = FetchData(TRAINING_LABELS_PATH, TRAINING_IMAGES_PATH);
             var trainingData = rawData.Take(50000).ToArray();
@@ -34,7 +34,7 @@ namespace NeuralNetowrksAndDeepLearning.Demo.Demoer
                 Console.WriteLine($"Finished epoch { i }. Accuracy: { network.Validate(testData, (net, o) => ValidateSample(net, o)) } / { testData.Count() }");
             });
 
-            network.Save(@"C:\Users\hadis\source\repos\NeuralNetowrksAndDeepLearning\Demo\nets\net2.mlp");
+            network.Save(@"C:\Users\hadis\source\repos\NeuralNetowrksAndDeepLearning\Demo\nets\no-hidden.mlp");
         }
 
         private static bool ValidateSample(double[] activations, double[] output)
