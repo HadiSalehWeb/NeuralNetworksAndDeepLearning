@@ -7,6 +7,7 @@ using System.Text;
 
 namespace NeuralNetowrksAndDeepLearning
 {
+    [Serializable]
     public class NeuralNetwork
     {
         public int LayerCount => Weights.Count + 1;
@@ -62,7 +63,18 @@ namespace NeuralNetowrksAndDeepLearning
             return vector;
         }
 
-        public double Cost(IEnumerable<ITrainingSample> trainingData)
+        public int FeedforwardMaxArg(double[] vector)
+        {
+            var output = Feedforward(vector);
+            var max = double.MinValue;
+            var maxIndex = -1;
+            for (int i = 0; i < output.Length; i++)
+                if (output[i] > max)
+                    (max, maxIndex) = (output[i], i);
+            return maxIndex;
+        }
+
+        public double Cost(IEnumerable<TrainingSample> trainingData)
         {
             double cost = 0;
 
@@ -79,12 +91,12 @@ namespace NeuralNetowrksAndDeepLearning
             return cost / (2 * trainingData.Count());
         }
 
-        public int Validate(IEnumerable<ITrainingSample> trainingData, Func<double[], double[], bool> ValidateSample)
+        public int Validate(IEnumerable<TrainingSample> trainingData, Func<double[], double[], bool> ValidateSample)
         {
             return trainingData.Aggregate(0, (a, c) => a + (ValidateSample(Feedforward(c.Input), c.Output) ? 1 : 0));
         }
 
-        public void SGD(IEnumerable<ITrainingSample> trainingData, int epochs, int miniBatchSize, double learningRate, Action<int> onEpoch = null, Action<int> onBatch = null)
+        public void SGD(IEnumerable<TrainingSample> trainingData, int epochs, int miniBatchSize, double learningRate, Action<int> onEpoch = null, Action<int> onBatch = null)
         {
             for (int epoch = 0; epoch < epochs; epoch++)
             {
@@ -100,75 +112,66 @@ namespace NeuralNetowrksAndDeepLearning
             }
         }
 
-        public void UpdateMiniBatch(IEnumerable<ITrainingSample> batch, double learningRate)
+        public void UpdateMiniBatch(IEnumerable<TrainingSample> batch, double learningRate)
         {
-            var neblaWeights = Weights.Select(x => new double[x.GetLength(0), x.GetLength(1)]).ToList();
-            foreach (var sample in batch)
+            var costGradient = batch.AsParallel().Select(sample => Backpropagate(sample)).Aggregate((a, c) =>
             {
-                var deltaWeights = Backpropagate(sample);
-                for (int l = 0; l < neblaWeights.Count; l++)
-                    for (int i = 0; i < neblaWeights[l].GetLength(0); i++)
-                        for (int j = 0; j < neblaWeights[l].GetLength(1); j++)
-                            neblaWeights[l][i, j] += deltaWeights[l][i, j];
-            }
-            //var delCostOverDelWeights = batch.AsParallel().Select(sample => Backpropagate(sample)).Aggregate((a, c) =>
-            //{
-            //    for (int l = 0; l < a.Count; l++)
-            //        for (int i = 0; i < a[l].GetLength(0); i++)
-            //            for (int j = 0; j < a[l].GetLength(1); j++)
-            //                a[l][i, j] += c[l][i, j];
+                for (int l = 0; l < a.Count; l++)
+                    for (int i = 0; i < a[l].GetLength(0); i++)
+                        for (int j = 0; j < a[l].GetLength(1); j++)
+                            a[l][i, j] += c[l][i, j];
 
-            //    return a;
-            //});
+                return a;
+            });
 
-            for (int l = 0; l < neblaWeights.Count; l++)
+            var factor = learningRate / batch.Count();
+
+            for (int l = 0; l < costGradient.Count; l++)
                 for (int i = 0; i < Weights[l].GetLength(0); i++)
                     for (int j = 0; j < Weights[l].GetLength(1); j++)
-                        Weights[l][i, j] -= (learningRate / batch.Count()) * neblaWeights[l][i, j];
+                        Weights[l][i, j] -= factor * costGradient[l][i, j];
         }
 
         /// <summary>
         /// Returns the partial derivative of the cost function on one sample with respect to every weight in the network.
         /// </summary>
-        public List<double[,]> Backpropagate(ITrainingSample sample)
+        public List<double[,]> Backpropagate(TrainingSample sample)
         {
             // Forwards pass
             var (weightedInputs, activations) = GetWeightedInputsAndActivations(sample.Input);
 
-            // The derivative with respect to the activation of the last layer is simple to compute: activation - expectedActivation
-            var errors = activations.Last().Select((a, i) => a - sample.Output[i]).ToArray();
+            var delCostOverDelActivation = activations.Last().Select((a, i) => a - sample.Output[i]).ToArray();
 
             // Backwards pass
             List<double[,]> delCostOverDelWeights = Weights.Select(x => new double[x.GetLength(0), x.GetLength(1)]).ToList();
-            List<double[]> delCostOverDelActivations = Weights.Select(x => new double[x.GetLength(0)]).ToList();
-            delCostOverDelActivations[delCostOverDelActivations.Count - 1] = errors;
-
-            // Comment notation:
-            // Cost function: C
-            // Weight connecting the i-th neuron on the (l + 1)-th layer to the j-th neuron on the l-th layer: w[l][i, j]
-            // Bias of the i-th neuron on the (l + 1)-th layer: b[l][i]
-            // Activation of the i-th neuon on the l-th layer: a[l][i]
-            // Weighted input of the i-th neuron on the l-th layer: z[l][i] // which doesn't make sense on layer 0, but is left for index convenience
-            // Notice that weights, biases, delCostOverDelWeights and delCostOverDelActivation all start at layer 1 (the 0-th layer is irrelevant to their meanings) while activations and weightedInputs strat at the 0-th layer
 
             for (int l = Weights.Count - 1; l >= 0; l--)
             {
-                //Calculate ∂C/∂w for the current layer:
+                //Calculate ∂C/∂w for every w in the current layer:
                 for (int i = 0; i < Weights[l].GetLength(0); i++)
+                {
+                    var delCostOverDelWeightedInput = // ∂C/∂z[l + 1][i]
+                        delCostOverDelActivation[i] * // ∂C/∂a[l + 1][i]
+                        SigmoidPrime(weightedInputs[l + 1][i]); // ∂a[l + 1][i]/∂z[l + 1][i] = ∂(σ(z[l + 1][i]))/∂z[l + 1][i] = σ′(z[l + 1][i])
+
                     for (int j = 0; j < Weights[l].GetLength(1); j++)
                         delCostOverDelWeights[l][i, j] = // ∂C/∂w[l][i, j]
-                            delCostOverDelActivations[l][i] * // ∂C/∂a[l + 1][i]
-                            SigmoidPrime(weightedInputs[l + 1][i]) * // ∂a[l + 1][i]/∂z[l + 1][i] = ∂(σ(z[l + 1][i]))/∂z[l + 1][i] = σ′(z[l + 1][i])
-                            (j < Weights[l].GetLength(1) - 1 ? activations[l][j] : 1); // ∂z[l + 1][i]/∂w[l][i, j] = a[l][j] ||OR|| ∂z[l + 1][i]/∂b[l][i] = 1
+                            delCostOverDelWeightedInput * // ∂C/∂z[l + 1][i]
+                            (j < Weights[l].GetLength(1) - 1 ? activations[l][j] : 1); // ∂z[l + 1][i]/∂w[l][i, j] = a[l][j] ((OR)) ∂z[l + 1][i]/∂b[l][i] = 1
+                }
 
                 // Calculate ∂C/∂a for the previous layer(a[l]):
                 if (l != 0)
+                {
+                    var tempDelCostOverDelActivation = new double[Weights[l - 1].GetLength(0)];
                     for (int i = 0; i < Weights[l - 1].GetLength(0); i++)
                         for (int j = 0; j < Weights[l].GetLength(0); j++)
-                            delCostOverDelActivations[l - 1][i] += // ∂C/∂a[l][i] = sum over j:
-                                delCostOverDelActivations[l][j] * // ∂C/∂a[l + 1][j]
+                            tempDelCostOverDelActivation[i] += // ∂C/∂a[l][i] = sum over j:
+                                delCostOverDelActivation[j] * // ∂C/∂a[l + 1][j]
                                 SigmoidPrime(weightedInputs[l + 1][j]) * // ∂a[l + 1][j]/∂z[l + 1][j] = ∂(σ(z[l + 1][j]))/∂z[l + 1][j] = σ′(z[l + 1][j])
                                 Weights[l][j, i]; // ∂z[l + 1][j]/∂a[l][i] = w[l][j, i]
+                    delCostOverDelActivation = tempDelCostOverDelActivation;
+                }
             }
 
             return delCostOverDelWeights;

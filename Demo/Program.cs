@@ -22,20 +22,19 @@ namespace NeuralNetowrksAndDeepLearning.Demo.Demoer
         {
             var network = new NeuralNetwork(new List<int>() { INPUT_COUNT, HIDDEN_COUNT, OUTPUT_COUNT });
 
-            var trainingData = FetchData(TRAINING_LABELS_PATH, TRAINING_IMAGES_PATH);
+            var rawData = FetchData(TRAINING_LABELS_PATH, TRAINING_IMAGES_PATH);
+            var trainingData = rawData.Take(50000).ToArray();
+            var validationData = rawData.Skip(50000).ToArray();
             var testData = FetchData(TEST_LABELS_PATH, TEST_IMAGES_PATH);
 
-            Console.WriteLine($"Starting cost: { network.Cost(trainingData) }, Starting validation: { network.Validate(testData, (net, o) => ValidateSample(net, o)) } / { testData.Count() }");
+            Console.WriteLine($"Starting accuracy: { network.Validate(testData, (net, o) => ValidateSample(net, o)) } / { testData.Count() }");
 
             network.SGD(trainingData, EPOCH_COUNT, BATCH_SIZE, LEARNING_RATE, i =>
             {
-                Console.WriteLine($"Finished epoch { i }. Cost: { network.Cost(trainingData) }, Validation: { network.Validate(testData, (net, o) => ValidateSample(net, o)) } / { testData.Count() }");
-            }/*, i =>
-            {
-                Console.WriteLine($"Finished batch at { i }.");
-            }*/);
+                Console.WriteLine($"Finished epoch { i }. Accuracy: { network.Validate(testData, (net, o) => ValidateSample(net, o)) } / { testData.Count() }");
+            });
 
-            network.Save(@"C:\Users\hadis\source\repos\NeuralNetowrksAndDeepLearning\Demo\nets\sgd.mlp");
+            network.Save(@"C:\Users\hadis\source\repos\NeuralNetowrksAndDeepLearning\Demo\nets\net2.mlp");
         }
 
         private static bool ValidateSample(double[] activations, double[] output)
@@ -51,7 +50,7 @@ namespace NeuralNetowrksAndDeepLearning.Demo.Demoer
             return maxActivationIndex == maxOutputIndex;
         }
 
-        private static ITrainingSample[] FetchData(string labelPath, string imagePath)
+        private static TrainingSample[] FetchData(string labelPath, string imagePath)
         {
             BinaryReader labels = new BinaryReader(new FileStream(labelPath, FileMode.Open));
 
@@ -65,7 +64,7 @@ namespace NeuralNetowrksAndDeepLearning.Demo.Demoer
             int width = ReadBigInt32(images);
             int height = ReadBigInt32(images);
 
-            ITrainingSample[] ret = new ITrainingSample[numberOfImages];
+            TrainingSample[] ret = new TrainingSample[numberOfImages];
 
             Console.WriteLine($"magicLabel: { magicLabel }");
             Console.WriteLine($"numberOfLabels: { numberOfLabels }");
@@ -77,7 +76,13 @@ namespace NeuralNetowrksAndDeepLearning.Demo.Demoer
             Console.WriteLine();
 
             for (int i = 0; i < numberOfImages; i++)
-                ret[i] = new MNISTSample(images.ReadBytes(width * height), labels.ReadByte());
+            {
+                var label = labels.ReadByte();
+                ret[i] = new TrainingSample(
+                    images.ReadBytes(width * height).Select(x => x / 255.0).ToArray(),
+                    Enumerable.Range(0, 10).Select(c => c == label ? 1.0 : 0.0).ToArray()
+                );
+            }
 
             return ret;
         }
