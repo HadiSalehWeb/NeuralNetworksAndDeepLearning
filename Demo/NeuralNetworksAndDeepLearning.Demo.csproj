@@ -6,11 +6,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\NeuralNetworksAndDeepLearning.Visualizer\NeuralNetworksAndDeepLearning.Visualizer.csproj" />
     <ProjectReference Include="..\NeuralNetworksAndDeepLearning\NeuralNetworksAndDeepLearning.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="nets\" />
+    <Folder Include="Visualizations\" />
   </ItemGroup>
 
 </Project>

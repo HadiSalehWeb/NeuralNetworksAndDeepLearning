@@ -7,21 +7,34 @@ using System.Text;
 
 namespace NeuralNetworksAndDeepLearning
 {
+    public enum Regularization
+    {
+        None = 0,
+        L1 = 1,
+        L2 = 2
+    }
+
     [Serializable]
-    public class NeuralNetwork
+    public class NeuralNetwork<TCost>
+        where TCost : ICost, new()
     {
         public int LayerCount => Weights.Count + 1;
         public List<int> NeuronCount => new List<int> { Weights[0].GetLength(1) - 1 }.Concat(Weights.Select(x => x.GetLength(0))).ToList();
         public List<double[,]> Weights { get; }
+        protected readonly TCost cost;
+        protected readonly Regularization regularization;
 
-        public NeuralNetwork(List<int> layers, Random rand)
+        public NeuralNetwork(List<int> layers, Regularization regularization, TCost cost, Random rand)
         {
             if (layers == null) throw new ArgumentNullException(nameof(layers));
             if (rand == null) throw new ArgumentNullException(nameof(rand));
             if (layers.Count <= 1) throw new ArgumentException("The network must contain at least two layers.", nameof(layers));
             if (layers.Any(l => l <= 0)) throw new ArgumentException("Each layer of the network must contain at least one neuron.", nameof(layers));
 
+            this.regularization = regularization;
+            this.cost = cost;
             Weights = new List<double[,]>();
+
             for (int i = 0; i < layers.Count - 1; i++)
             {
                 Weights.Add(new double[layers[i + 1], layers[i] + 1]);
@@ -30,18 +43,24 @@ namespace NeuralNetworksAndDeepLearning
                         Weights[i][x, y] = rand.NextDouble() * 3.0 - 1.5;
             }
         }
+        public NeuralNetwork(List<int> layers, Regularization regularization, TCost cost) : this(layers, regularization, cost, new Random()) { }
+        public NeuralNetwork(List<int> layers, Regularization regularization) : this(layers, regularization, new TCost()) { }
+        public NeuralNetwork(List<int> layers) : this(layers, Regularization.None) { }
+        public NeuralNetwork() : this(new List<int> { 1, 1 }) { }
 
-        public NeuralNetwork(List<int> layers) : this(layers, new Random()) { }
-
-        public NeuralNetwork(List<double[,]> weights)
+        public NeuralNetwork(List<double[,]> weights, Regularization regularization, TCost cost)
         {
             if (weights == null || weights.Any(l => l == null)) throw new ArgumentNullException(nameof(weights));
 
             if (weights.Count <= 0) throw new ArgumentException("The network must contain at least two layers.", nameof(weights));
             if (weights[0].GetLength(1) <= 1 || weights.Any(l => l.GetLength(0) < 1)) throw new ArgumentException("Each layer of the network must contain at least one neuron.", nameof(weights));
 
+            this.regularization = regularization;
+            this.cost = cost;
             Weights = weights;
         }
+        public NeuralNetwork(List<double[,]> weights, Regularization regularization) : this(weights, regularization, new TCost()) { }
+        public NeuralNetwork(List<double[,]> weights) : this(weights, Regularization.None, new TCost()) { }
 
         public double[] Feedforward(double[] vector)
         {
@@ -55,7 +74,7 @@ namespace NeuralNetworksAndDeepLearning
                     double weightedInput = 0;
                     for (int j = 0; j < weightsLayer.GetLength(1) - 1; j++)
                         weightedInput += weightsLayer[i, j] * vector[j];
-                    res[i] = Sigmoid(weightedInput + weightsLayer[i, weightsLayer.GetLength(1) - 1]);
+                    res[i] = MLMath.Sigmoid(weightedInput + weightsLayer[i, weightsLayer.GetLength(1) - 1]);
                 }
                 vector = res;
             }
@@ -76,35 +95,32 @@ namespace NeuralNetworksAndDeepLearning
 
         public double Cost(IEnumerable<TrainingSample> trainingData)
         {
-            double cost = 0;
+            double costValue = 0;
 
             foreach (var sample in trainingData)
             {
-                double[] result = Feedforward(sample.Input);
-                for (int i = 0; i < result.Length; i++)
-                {
-                    result[i] = sample.Output[i] - result[i];
-                    cost += result[i] * result[i];
-                }
+                double[] activations = Feedforward(sample.Input);
+                for (int i = 0; i < activations.Length; i++)
+                    costValue += cost.Function(activations[i], sample.Output[i]);
             }
 
-            return cost / (2 * trainingData.Count());
+            return costValue / trainingData.Count();
         }
 
         public int Validate(IEnumerable<TrainingSample> trainingData, Func<double[], double[], bool> ValidateSample)
         {
-            return trainingData.Aggregate(0, (a, c) => a + (ValidateSample(Feedforward(c.Input), c.Output) ? 1 : 0));
+            return trainingData.Aggregate(0, (a, c) => ValidateSample(Feedforward(c.Input), c.Output) ? a + 1 : a);
         }
 
-        public void SGD(IEnumerable<TrainingSample> trainingData, int epochs, int miniBatchSize, double learningRate, Action<int> onEpoch = null, Action<int> onBatch = null)
+        public void SGD(IEnumerable<TrainingSample> trainingData, int epochs, int miniBatchSize, double learningRate, double regularizationRate = 0.0, Action<int> onEpoch = null, Action<int> onBatch = null)
         {
             for (int epoch = 0; epoch < epochs; epoch++)
             {
-                var shuffledData = Shuffle(trainingData);
+                var shuffledData = trainingData.Shuffle();
 
                 for (int i = 0; i < shuffledData.Count; i += miniBatchSize)
                 {
-                    UpdateMiniBatch(shuffledData.Skip(i).Take(miniBatchSize), learningRate);
+                    UpdateMiniBatch(shuffledData.Skip(i).Take(miniBatchSize), learningRate, shuffledData.Count, regularizationRate);
                     onBatch?.Invoke(i);
                 }
 
@@ -112,7 +128,7 @@ namespace NeuralNetworksAndDeepLearning
             }
         }
 
-        public void UpdateMiniBatch(IEnumerable<TrainingSample> batch, double learningRate)
+        protected void UpdateMiniBatch(IEnumerable<TrainingSample> batch, double learningRate, int trainingDataCount, double regularizationRate)
         {
             var costGradient = batch.AsParallel().Select(sample => Backpropagate(sample)).Aggregate((a, c) =>
             {
@@ -124,23 +140,48 @@ namespace NeuralNetworksAndDeepLearning
                 return a;
             });
 
-            var factor = learningRate / batch.Count();
+            double factor = learningRate / batch.Count(), regularizationFactor = learningRate * regularizationRate / trainingDataCount;
 
-            for (int l = 0; l < costGradient.Count; l++)
-                for (int i = 0; i < Weights[l].GetLength(0); i++)
-                    for (int j = 0; j < Weights[l].GetLength(1); j++)
-                        Weights[l][i, j] -= factor * costGradient[l][i, j];
+            switch (regularization)
+            {
+                case Regularization.L1:
+                    for (int l = 0; l < costGradient.Count; l++)
+                        for (int i = 0; i < Weights[l].GetLength(0); i++)
+                            for (int j = 0; j < Weights[l].GetLength(1); j++)
+                                Weights[l][i, j] =
+                                    Weights[l][i, j]
+                                    - (j == Weights[l].GetLength(1) - 1 ? 1 : regularizationFactor * Math.Sign(Weights[l][i, j]))
+                                    - factor * costGradient[l][i, j];
+
+                    break;
+                case Regularization.L2:
+                    for (int l = 0; l < costGradient.Count; l++)
+                        for (int i = 0; i < Weights[l].GetLength(0); i++)
+                            for (int j = 0; j < Weights[l].GetLength(1); j++)
+                                Weights[l][i, j] =
+                                    (j == Weights[l].GetLength(1) - 1 ? 1 : 1 - regularizationFactor) * Weights[l][i, j]
+                                    - factor * costGradient[l][i, j];
+
+                    break;
+                case Regularization.None:
+                default:
+                    for (int l = 0; l < costGradient.Count; l++)
+                        for (int i = 0; i < Weights[l].GetLength(0); i++)
+                            for (int j = 0; j < Weights[l].GetLength(1); j++)
+                                Weights[l][i, j] = Weights[l][i, j] - factor * costGradient[l][i, j];
+                    break;
+            }
         }
 
         /// <summary>
         /// Returns the partial derivative of the cost function on one sample with respect to every weight in the network.
         /// </summary>
-        public List<double[,]> Backpropagate(TrainingSample sample)
+        protected List<double[,]> Backpropagate(TrainingSample sample)
         {
             // Forwards pass
             var (weightedInputs, activations) = GetWeightedInputsAndActivations(sample.Input);
 
-            var delCostOverDelActivation = activations.Last().Select((a, i) => a - sample.Output[i]).ToArray();
+            var delCostOverDelWeightedInputs = activations.Last().Select((a, i) => cost.DelCostOverDelWeightedInput(weightedInputs.Last()[i], a, sample.Output[i])).ToArray();
 
             // Backwards pass
             List<double[,]> delCostOverDelWeights = Weights.Select(x => new double[x.GetLength(0), x.GetLength(1)]).ToList();
@@ -149,28 +190,23 @@ namespace NeuralNetworksAndDeepLearning
             {
                 //Calculate ∂C/∂w for every w in the current layer:
                 for (int i = 0; i < Weights[l].GetLength(0); i++)
-                {
-                    var delCostOverDelWeightedInput = // ∂C/∂z[l + 1][i]
-                        delCostOverDelActivation[i] * // ∂C/∂a[l + 1][i]
-                        SigmoidPrime(weightedInputs[l + 1][i]); // ∂a[l + 1][i]/∂z[l + 1][i] = ∂(σ(z[l + 1][i]))/∂z[l + 1][i] = σ′(z[l + 1][i])
-
                     for (int j = 0; j < Weights[l].GetLength(1); j++)
                         delCostOverDelWeights[l][i, j] = // ∂C/∂w[l][i, j]
-                            delCostOverDelWeightedInput * // ∂C/∂z[l + 1][i]
+                            delCostOverDelWeightedInputs[i] * // ∂C/∂z[l + 1][i]
                             (j < Weights[l].GetLength(1) - 1 ? activations[l][j] : 1); // ∂z[l + 1][i]/∂w[l][i, j] = a[l][j] ((OR)) ∂z[l + 1][i]/∂b[l][i] = 1
-                }
 
                 // Calculate ∂C/∂a for the previous layer(a[l]):
                 if (l != 0)
                 {
-                    var tempDelCostOverDelActivation = new double[Weights[l - 1].GetLength(0)];
-                    for (int i = 0; i < Weights[l - 1].GetLength(0); i++)
+                    //var tempDelCostOverDelActivation = new double[Weights[l - 1].GetLength(0)];
+                    var tempDelCostOverDelWeightedInputs = new double[Weights[l - 1].GetLength(0)];
+                    for (int i = 0; i < Weights[l].GetLength(1) - 1; i++)
                         for (int j = 0; j < Weights[l].GetLength(0); j++)
-                            tempDelCostOverDelActivation[i] += // ∂C/∂a[l][i] = sum over j:
-                                delCostOverDelActivation[j] * // ∂C/∂a[l + 1][j]
-                                SigmoidPrime(weightedInputs[l + 1][j]) * // ∂a[l + 1][j]/∂z[l + 1][j] = ∂(σ(z[l + 1][j]))/∂z[l + 1][j] = σ′(z[l + 1][j])
-                                Weights[l][j, i]; // ∂z[l + 1][j]/∂a[l][i] = w[l][j, i]
-                    delCostOverDelActivation = tempDelCostOverDelActivation;
+                            tempDelCostOverDelWeightedInputs[i] += // ∂C/∂z[l][i] = sum over j:
+                                delCostOverDelWeightedInputs[j] * // ∂C/∂z[l + 1][j]
+                                Weights[l][j, i] * // ∂z[l + 1][j]/∂a[l][i] = w[l][j, i]
+                                MLMath.SigmoidPrime(weightedInputs[l][i]); // ∂a[l][i]/∂z[l][i] = σ′(z[l][i])
+                    delCostOverDelWeightedInputs = tempDelCostOverDelWeightedInputs;
                 }
             }
 
@@ -189,7 +225,7 @@ namespace NeuralNetworksAndDeepLearning
                     for (int j = 0; j < Weights[l].GetLength(1) - 1; j++)
                         value += Weights[l][i, j] * activations[l][j];// weights
                     weightedInputs[l + 1][i] = value + Weights[l][i, Weights[l].GetLength(1) - 1];// bias
-                    activations[l + 1][i] = Sigmoid(weightedInputs[l + 1][i]);
+                    activations[l + 1][i] = MLMath.Sigmoid(weightedInputs[l + 1][i]);
                 }
 
             return (weightedInputs, activations);
@@ -198,19 +234,22 @@ namespace NeuralNetworksAndDeepLearning
         public void Save(string path)
         {
             using (var stream = File.OpenWrite(path))
-                new BinaryFormatter().Serialize(stream, this);
+                new BinaryFormatter().Serialize(stream, Weights);
         }
 
-        public static NeuralNetwork Load(string path)
+        public static NeuralNetwork<TCost> Load(string path)
         {
+            List<double[,]> weights;
             using (var stream = File.OpenRead(path))
-                return (NeuralNetwork)new BinaryFormatter().Deserialize(stream);
+                weights = (List<double[,]>)new BinaryFormatter().Deserialize(stream);
+
+            return new NeuralNetwork<TCost>(weights);
         }
 
         public override string ToString()
         {
             StringBuilder builder = new StringBuilder();
-            builder.AppendLine($"Shape: { String.Join(", ", NeuronCount) }");
+            builder.AppendLine($"Shape: { string.Join(", ", NeuronCount) }");
             builder.AppendLine($"Weights:");
             int layerIndex = 0;
 
@@ -232,36 +271,6 @@ namespace NeuralNetworksAndDeepLearning
             }
 
             return builder.ToString();
-        }
-
-        private static double Sigmoid(double z)
-        {
-            return 1 / (1 + Math.Exp(-z));
-        }
-
-        private static double SigmoidPrime(double z)
-        {
-            return Sigmoid(z) * (1 - Sigmoid(z));
-        }
-
-        private static List<T> Shuffle<T>(IEnumerable<T> data, Random rand)
-        {
-            List<T> ts = new List<T>(data);
-            List<T> result = new List<T>();
-
-            while (ts.Any())
-            {
-                int r = rand.Next(0, ts.Count);
-                result.Add(ts[r]);
-                ts.RemoveAt(r);
-            }
-
-            return result;
-        }
-
-        private static List<T> Shuffle<T>(IEnumerable<T> data)
-        {
-            return Shuffle(data, new Random());
         }
     }
 }

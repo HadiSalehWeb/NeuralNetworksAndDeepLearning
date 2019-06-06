@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using NeuralNetworksAndDeepLearning.Visualizer;
 
-namespace NeuralNetworksAndDeepLearning.Demo.Demoer
+namespace NeuralNetworksAndDeepLearning.Demo
 {
     class Program
     {
@@ -16,25 +17,53 @@ namespace NeuralNetworksAndDeepLearning.Demo.Demoer
         const int INPUT_COUNT = 784;
         const int HIDDEN_COUNT = 30;
         const int OUTPUT_COUNT = 10;
-        const double LEARNING_RATE = 3.0;
+        const double LEARNING_RATE = 0.5;
+        const double REGULARIZATION_RATE = 5.0;
 
         static void Main(string[] args)
         {
-            var network = new NeuralNetwork(new List<int>() { INPUT_COUNT, HIDDEN_COUNT, OUTPUT_COUNT });
+            //TrainOnMnistAndSave();
+            VisualizeNetwork(
+                @"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\Demo\nets",
+                @"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\Demo\Visualizations",
+                @"cross-entropy"
+            );
+        }
 
-            var rawData = FetchData(TRAINING_LABELS_PATH, TRAINING_IMAGES_PATH).Concat(GetNoise(INPUT_COUNT, OUTPUT_COUNT, 60000)).ToArray();
+        public static void TrainOnMnistAndSave(bool printBatchProgress = false, bool printCostEveryEpoch = false, bool printFetchStats = false)
+        {
+            var network = new NeuralNetwork<CrossEntropy>(new List<int>() { INPUT_COUNT, HIDDEN_COUNT, OUTPUT_COUNT }, Regularization.L2);
+
+            var rawData = FetchData(TRAINING_LABELS_PATH, TRAINING_IMAGES_PATH, printFetchStats);
             var trainingData = rawData.Take(50000).ToArray();
             var validationData = rawData.Skip(50000).ToArray();
-            var testData = FetchData(TEST_LABELS_PATH, TEST_IMAGES_PATH);
+            var testData = FetchData(TEST_LABELS_PATH, TEST_IMAGES_PATH, printFetchStats);
+            Action<int> onBatch = null;
 
-            Console.WriteLine($"Starting accuracy: { network.Validate(testData, (net, o) => ValidateSample(net, o)) } / { testData.Count() }");
-
-            network.SGD(trainingData, EPOCH_COUNT, BATCH_SIZE, LEARNING_RATE, i =>
+            if (printBatchProgress)
             {
-                Console.WriteLine($"Finished epoch { i }. Accuracy: { network.Validate(testData, (net, o) => ValidateSample(net, o)) } / { testData.Count() }");
-            });
+                var batchCount = trainingData.Length / BATCH_SIZE;
+                onBatch = i =>
+                {
+                    Console.WriteLine($"Batch progress: { i }/{ batchCount }");
+                    Console.SetCursorPosition(0, Console.CursorTop - 1);
+                };
+            }
+            Console.WriteLine($"Starting Cost: { (printCostEveryEpoch ? network.Cost(testData) : -1) }, Accuracy: { network.Validate(testData, (a, o) => ValidateSample(a, o)) } / { testData.Count() }");
 
-            network.Save(@"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\Demo\nets\30-hidden-noise.mlp");
+            network.SGD(trainingData, EPOCH_COUNT, BATCH_SIZE, LEARNING_RATE, REGULARIZATION_RATE, i =>
+            {
+                Console.WriteLine($"Finished epoch { i }. Cost: { (printCostEveryEpoch ? network.Cost(testData) : -1) }, Accuracy: { network.Validate(testData, (a, o) => ValidateSample(a, o)) } / { testData.Count() }");
+            }, onBatch);
+
+            network.Save(@"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\Demo\nets\cross-entropy.mlp");
+        }
+
+        public static void VisualizeNetwork(string src, string dest, string networkName)
+        {
+            var network = NeuralNetwork<CrossEntropy>.Load(Path.Combine(src, networkName + ".mlp"));
+            var visualizer = new NetworkVisualizer(network.Weights);
+            visualizer.ConstructVisualization(28, dest, networkName);
         }
 
         private static List<TrainingSample> GetNoise(int inputCount, int outputCount, int count)
@@ -66,7 +95,7 @@ namespace NeuralNetworksAndDeepLearning.Demo.Demoer
             return maxActivationIndex == maxOutputIndex;
         }
 
-        private static TrainingSample[] FetchData(string labelPath, string imagePath)
+        private static TrainingSample[] FetchData(string labelPath, string imagePath, bool print = false)
         {
             BinaryReader labels = new BinaryReader(new FileStream(labelPath, FileMode.Open));
 
@@ -82,14 +111,17 @@ namespace NeuralNetworksAndDeepLearning.Demo.Demoer
 
             TrainingSample[] ret = new TrainingSample[numberOfImages];
 
-            Console.WriteLine($"magicLabel: { magicLabel }");
-            Console.WriteLine($"numberOfLabels: { numberOfLabels }");
-            Console.WriteLine();
-            Console.WriteLine($"magicLabel: { magicNumber }");
-            Console.WriteLine($"numberOfImages: { numberOfImages }");
-            Console.WriteLine($"width: { width }");
-            Console.WriteLine($"height: { height }");
-            Console.WriteLine();
+            if (print)
+            {
+                Console.WriteLine($"magicLabel: { magicLabel }");
+                Console.WriteLine($"numberOfLabels: { numberOfLabels }");
+                Console.WriteLine();
+                Console.WriteLine($"magicLabel: { magicNumber }");
+                Console.WriteLine($"numberOfImages: { numberOfImages }");
+                Console.WriteLine($"width: { width }");
+                Console.WriteLine($"height: { height }");
+                Console.WriteLine();
+            }
 
             for (int i = 0; i < numberOfImages; i++)
             {
