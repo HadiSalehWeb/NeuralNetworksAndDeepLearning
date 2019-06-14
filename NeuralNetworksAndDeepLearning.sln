@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.28803.352
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuralNetworksAndDeepLearning", "NeuralNetworksAndDeepLearning\NeuralNetworksAndDeepLearning.csproj", "{0B1FF277-5259-442E-A330-1E4536C0ADD7}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuralNetworksAndDeepLearning.Demo", "Demo\NeuralNetworksAndDeepLearning.Demo.csproj", "{2417C345-5663-43A5-B3DF-E994693CCD23}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuralNetworksAndDeepLearning.Demo", "NeuralNetworksAndDeepLearning.Demo\NeuralNetworksAndDeepLearning.Demo.csproj", "{2417C345-5663-43A5-B3DF-E994693CCD23}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuralNetworksAndDeepLearning.Visualizer", "NeuralNetworksAndDeepLearning.Visualizer\NeuralNetworksAndDeepLearning.Visualizer.csproj", "{3071AC79-9F88-4C2B-9F53-9ABECC788CB5}"
 EndProject
