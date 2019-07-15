@@ -6,12 +6,12 @@ namespace NeuralNetworksAndDeepLearning
 {
     public static class MLMath
     {
-        public static double Sigmoid(double z)
+        public static float Sigmoid(float z)
         {
-            return 1 / (1 + Math.Exp(-z));
+            return (float)(1f / (1f + Math.Exp(-z)));
         }
 
-        public static double SigmoidPrime(double z)
+        public static float SigmoidPrime(float z)
         {
             return Sigmoid(z) * (1 - Sigmoid(z));
         }
@@ -34,6 +34,11 @@ namespace NeuralNetworksAndDeepLearning
         public static List<T> Shuffle<T>(this IEnumerable<T> data)
         {
             return Shuffle(data, new Random());
+        }
+
+        public static float Gaussian(Random rand, float mean, float standardDeviation)
+        {
+            return (float)(mean + standardDeviation * Math.Sqrt(-2.0 * Math.Log(1.0 - rand.NextDouble())) * Math.Sin(2.0 * Math.PI * (1.0 - rand.NextDouble())));
         }
     }
 }

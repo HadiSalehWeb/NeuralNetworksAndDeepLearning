@@ -4,31 +4,31 @@ namespace NeuralNetworksAndDeepLearning
 {
     public class QuadraticCost : ICost
     {
-        public double Cost(double[] activation, double[] outputs)
+        public float Cost(float[] activation, float[] outputs)
         {
-            double cost = 0.0;
+            float cost = 0f;
 
             for (int i = 0; i < activation.Length; i++)
             {
-                double val = activation[i] - outputs[i];
+                float val = activation[i] - outputs[i];
                 cost += val * val;
             }
 
-            return .5 * cost;
+            return .5f * cost;
         }
 
-        public double Function(double activation, double output)
+        public float Function(float activation, float output)
         {
             var val = activation - output;
-            return .5 * val * val;
+            return .5f * val * val;
         }
 
-        public double DelCostOverDelActivation(double activation, double output)
+        public float DelCostOverDelActivation(float activation, float output)
         {
             return activation - output;
         }
 
-        public double DelCostOverDelWeightedInput(double weightedInput, double activation, double output)
+        public float DelCostOverDelWeightedInput(float weightedInput, float activation, float output)
         {
             return MLMath.SigmoidPrime(weightedInput) * DelCostOverDelActivation(activation, output);
         }

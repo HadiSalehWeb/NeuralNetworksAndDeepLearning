@@ -20,7 +20,7 @@ namespace NeuralNetworksAndDeepLearning
     {
         public int LayerCount => Weights.Count + 1;
         public List<int> NeuronCount => new List<int> { Weights[0].GetLength(1) - 1 }.Concat(Weights.Select(x => x.GetLength(0))).ToList();
-        public List<double[,]> Weights { get; }
+        public List<float[,]> Weights { get; }
         protected readonly TCost cost;
         protected readonly Regularization regularization;
 
@@ -33,14 +33,15 @@ namespace NeuralNetworksAndDeepLearning
 
             this.regularization = regularization;
             this.cost = cost;
-            Weights = new List<double[,]>();
+            Weights = new List<float[,]>();
 
             for (int i = 0; i < layers.Count - 1; i++)
             {
-                Weights.Add(new double[layers[i + 1], layers[i] + 1]);
+                Weights.Add(new float[layers[i + 1], layers[i] + 1]);
+                var standardDeviation = (float)(1f / Math.Sqrt(layers[i]));
                 for (int x = 0; x < layers[i + 1]; x++)
                     for (int y = 0; y < layers[i] + 1; y++)
-                        Weights[i][x, y] = rand.NextDouble() * 3.0 - 1.5;
+                        Weights[i][x, y] = MLMath.Gaussian(rand, 0f, standardDeviation);
             }
         }
         public NeuralNetwork(List<int> layers, Regularization regularization, TCost cost) : this(layers, regularization, cost, new Random()) { }
@@ -48,7 +49,7 @@ namespace NeuralNetworksAndDeepLearning
         public NeuralNetwork(List<int> layers) : this(layers, Regularization.None) { }
         public NeuralNetwork() : this(new List<int> { 1, 1 }) { }
 
-        public NeuralNetwork(List<double[,]> weights, Regularization regularization, TCost cost)
+        public NeuralNetwork(List<float[,]> weights, Regularization regularization, TCost cost)
         {
             if (weights == null || weights.Any(l => l == null)) throw new ArgumentNullException(nameof(weights));
 
@@ -59,19 +60,19 @@ namespace NeuralNetworksAndDeepLearning
             this.cost = cost;
             Weights = weights;
         }
-        public NeuralNetwork(List<double[,]> weights, Regularization regularization) : this(weights, regularization, new TCost()) { }
-        public NeuralNetwork(List<double[,]> weights) : this(weights, Regularization.None, new TCost()) { }
+        public NeuralNetwork(List<float[,]> weights, Regularization regularization) : this(weights, regularization, new TCost()) { }
+        public NeuralNetwork(List<float[,]> weights) : this(weights, Regularization.None, new TCost()) { }
 
-        public double[] Feedforward(double[] vector)
+        public float[] Feedforward(float[] vector)
         {
             if (vector.Length != Weights.First().GetLength(1) - 1) throw new ArgumentException("Mismatching dimensions.");
 
             foreach (var weightsLayer in Weights)
             {
-                double[] res = new double[weightsLayer.GetLength(0)];
+                float[] res = new float[weightsLayer.GetLength(0)];
                 for (int i = 0; i < weightsLayer.GetLength(0); i++)
                 {
-                    double weightedInput = 0;
+                    float weightedInput = 0;
                     for (int j = 0; j < weightsLayer.GetLength(1) - 1; j++)
                         weightedInput += weightsLayer[i, j] * vector[j];
                     res[i] = MLMath.Sigmoid(weightedInput + weightsLayer[i, weightsLayer.GetLength(1) - 1]);
@@ -82,10 +83,10 @@ namespace NeuralNetworksAndDeepLearning
             return vector;
         }
 
-        public int FeedforwardMaxArg(double[] vector)
+        public int FeedforwardMaxArg(float[] vector)
         {
             var output = Feedforward(vector);
-            var max = double.MinValue;
+            var max = float.MinValue;
             var maxIndex = -1;
             for (int i = 0; i < output.Length; i++)
                 if (output[i] > max)
@@ -93,13 +94,13 @@ namespace NeuralNetworksAndDeepLearning
             return maxIndex;
         }
 
-        public double Cost(IEnumerable<TrainingSample> trainingData)
+        public float Cost(IEnumerable<TrainingSample> trainingData)
         {
-            double costValue = 0;
+            float costValue = 0;
 
             foreach (var sample in trainingData)
             {
-                double[] activations = Feedforward(sample.Input);
+                float[] activations = Feedforward(sample.Input);
                 for (int i = 0; i < activations.Length; i++)
                     costValue += cost.Function(activations[i], sample.Output[i]);
             }
@@ -107,12 +108,12 @@ namespace NeuralNetworksAndDeepLearning
             return costValue / trainingData.Count();
         }
 
-        public int Validate(IEnumerable<TrainingSample> trainingData, Func<double[], double[], bool> ValidateSample)
+        public int Validate(IEnumerable<TrainingSample> trainingData, Func<float[], float[], bool> ValidateSample)
         {
             return trainingData.Aggregate(0, (a, c) => ValidateSample(Feedforward(c.Input), c.Output) ? a + 1 : a);
         }
 
-        public void SGD(IEnumerable<TrainingSample> trainingData, int epochs, int miniBatchSize, double learningRate, double regularizationRate = 0.0, Action<int> onEpoch = null, Action<int> onBatch = null)
+        public void SGD(IEnumerable<TrainingSample> trainingData, int epochs, int miniBatchSize, float learningRate, float regularizationRate = 0f, Action<int> onEpoch = null, Action<int> onBatch = null)
         {
             for (int epoch = 0; epoch < epochs; epoch++)
             {
@@ -128,7 +129,7 @@ namespace NeuralNetworksAndDeepLearning
             }
         }
 
-        protected void UpdateMiniBatch(IEnumerable<TrainingSample> batch, double learningRate, int trainingDataCount, double regularizationRate)
+        protected void UpdateMiniBatch(IEnumerable<TrainingSample> batch, float learningRate, int trainingDataCount, float regularizationRate)
         {
             var costGradient = batch.AsParallel().Select(sample => Backpropagate(sample)).Aggregate((a, c) =>
             {
@@ -140,7 +141,7 @@ namespace NeuralNetworksAndDeepLearning
                 return a;
             });
 
-            double factor = learningRate / batch.Count(), regularizationFactor = learningRate * regularizationRate / trainingDataCount;
+            float factor = learningRate / batch.Count(), regularizationFactor = learningRate * regularizationRate / trainingDataCount;
 
             switch (regularization)
             {
@@ -176,7 +177,7 @@ namespace NeuralNetworksAndDeepLearning
         /// <summary>
         /// Returns the partial derivative of the cost function on one sample with respect to every weight in the network.
         /// </summary>
-        protected List<double[,]> Backpropagate(TrainingSample sample)
+        public List<float[,]> Backpropagate(TrainingSample sample)
         {
             // Forwards pass
             var (weightedInputs, activations) = GetWeightedInputsAndActivations(sample.Input);
@@ -184,7 +185,7 @@ namespace NeuralNetworksAndDeepLearning
             var delCostOverDelWeightedInputs = activations.Last().Select((a, i) => cost.DelCostOverDelWeightedInput(weightedInputs.Last()[i], a, sample.Output[i])).ToArray();
 
             // Backwards pass
-            List<double[,]> delCostOverDelWeights = Weights.Select(x => new double[x.GetLength(0), x.GetLength(1)]).ToList();
+            List<float[,]> delCostOverDelWeights = Weights.Select(x => new float[x.GetLength(0), x.GetLength(1)]).ToList();
 
             for (int l = Weights.Count - 1; l >= 0; l--)
             {
@@ -198,8 +199,8 @@ namespace NeuralNetworksAndDeepLearning
                 // Calculate ∂C/∂a for the previous layer(a[l]):
                 if (l != 0)
                 {
-                    //var tempDelCostOverDelActivation = new double[Weights[l - 1].GetLength(0)];
-                    var tempDelCostOverDelWeightedInputs = new double[Weights[l - 1].GetLength(0)];
+                    //var tempDelCostOverDelActivation = new float[Weights[l - 1].GetLength(0)];
+                    var tempDelCostOverDelWeightedInputs = new float[Weights[l - 1].GetLength(0)];
                     for (int i = 0; i < Weights[l].GetLength(1) - 1; i++)
                         for (int j = 0; j < Weights[l].GetLength(0); j++)
                             tempDelCostOverDelWeightedInputs[i] += // ∂C/∂z[l][i] = sum over j:
@@ -213,15 +214,15 @@ namespace NeuralNetworksAndDeepLearning
             return delCostOverDelWeights;
         }
 
-        public (List<double[]>, List<double[]>) GetWeightedInputsAndActivations(double[] input)
+        public (List<float[]>, List<float[]>) GetWeightedInputsAndActivations(float[] input)
         {
-            List<double[]> activations = new List<double[]>() { input }.Concat(Weights.Select(x => new double[x.GetLength(0)])).ToList();
-            List<double[]> weightedInputs = activations.Select(x => new double[x.Length]).ToList();
+            List<float[]> activations = new List<float[]>() { input }.Concat(Weights.Select(x => new float[x.GetLength(0)])).ToList();
+            List<float[]> weightedInputs = activations.Select(x => new float[x.Length]).ToList();
 
             for (int l = 0; l < Weights.Count; l++)
                 for (int i = 0; i < Weights[l].GetLength(0); i++)
                 {
-                    double value = 0;
+                    float value = 0;
                     for (int j = 0; j < Weights[l].GetLength(1) - 1; j++)
                         value += Weights[l][i, j] * activations[l][j];// weights
                     weightedInputs[l + 1][i] = value + Weights[l][i, Weights[l].GetLength(1) - 1];// bias
@@ -239,9 +240,9 @@ namespace NeuralNetworksAndDeepLearning
 
         public static NeuralNetwork<TCost> Load(string path)
         {
-            List<double[,]> weights;
+            List<float[,]> weights;
             using (var stream = File.OpenRead(path))
-                weights = (List<double[,]>)new BinaryFormatter().Deserialize(stream);
+                weights = (List<float[,]>)new BinaryFormatter().Deserialize(stream);
 
             return new NeuralNetwork<TCost>(weights);
         }

@@ -6,19 +6,19 @@ namespace NeuralNetworksAndDeepLearning
 {
     public struct TrainingSample
     {
-        public double[] Input { get; }
-        public double[] Output { get; }
+        public float[] Input { get; }
+        public float[] Output { get; }
 
-        public TrainingSample(double[] input, double[] output)
+        public TrainingSample(float[] input, float[] output)
         {
             Input = input;
             Output = output;
         }
 
-        public TrainingSample(double input, double output)
+        public TrainingSample(float input, float output)
         {
-            Input = new double[] { input };
-            Output = new double[] { output };
+            Input = new float[] { input };
+            Output = new float[] { output };
         }
     }
 }

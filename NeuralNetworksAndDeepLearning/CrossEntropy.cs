@@ -6,9 +6,9 @@ namespace NeuralNetworksAndDeepLearning
 {
     public class CrossEntropy : ICost
     {
-        public double Cost(double[] activations, double[] outputs)
+        public float Cost(float[] activations, float[] outputs)
         {
-            double cost = 0.0;
+            float cost = 0f;
 
             for (int i = 0; i < activations.Length; i++)
                 cost += Function(activations[i], outputs[i]);
@@ -16,17 +16,17 @@ namespace NeuralNetworksAndDeepLearning
             return cost;
         }
 
-        public double Function(double activation, double output)
+        public float Function(float activation, float output)
         {
-            return -output * Math.Log(activation) - (1 - output) * Math.Log(1 - activation);
+            return (float)(-output * Math.Log(activation) - (1 - output) * Math.Log(1 - activation));
         }
 
-        public double DelCostOverDelActivation(double activation, double output)
+        public float DelCostOverDelActivation(float activation, float output)
         {
             return (activation - output) / (activation * (1 - activation));
         }
 
-        public double DelCostOverDelWeightedInput(double weightedInput, double activation, double output)
+        public float DelCostOverDelWeightedInput(float weightedInput, float activation, float output)
         {
             return (activation - output);
         }
