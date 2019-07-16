@@ -16,6 +16,27 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
             return Sigmoid(z) * (1 - Sigmoid(z));
         }
 
+        public static float Tanh(float z)
+        {
+            var e = Math.Exp(2 * z);
+            return (float)((e - 1) / (e + 1));
+        }
+
+        public static float TanhPrime(float z)
+        {
+            return 1 - Tanh(z) * Tanh(z);
+        }
+
+        public static float ReLU(float z)
+        {
+            return z <= 0 ? 0 : z;
+        }
+
+        public static float ReLUPrime(float z)
+        {
+            return z <= 0 ? 0 : 1;
+        }
+
         public static List<T> Shuffle<T>(this IEnumerable<T> data, Random rand)
         {
             List<T> ts = new List<T>(data);
@@ -72,6 +93,16 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
                     (val, index) = (list[i], i);
 
             return index;
+        }
+
+        internal static float[] Activate(float[] weightedInput, Func<float, float> activationFunction)
+        {
+            float[] activation = new float[weightedInput.Length];
+
+            for (int i = 0; i < weightedInput.Length; i++)
+                activation[i] = activationFunction(weightedInput[i]);
+
+            return activation;
         }
     }
 }

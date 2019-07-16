@@ -9,12 +9,12 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
     public class NeuralNetwork
     {
         public int InputDimension { get; }
-        public ILayer[] HiddenLayers { get; }
+        public IHiddenLayer[] HiddenLayers { get; }
         public IOutputLayer OutputLayer { get; }
         public int Depth { get; }
         public ILayer[] Layers { get; }
 
-        public NeuralNetwork(int inputDimension, IOutputLayer outputLayer, params ILayer[] hiddenLayers)
+        public NeuralNetwork(int inputDimension, IOutputLayer outputLayer, params IHiddenLayer[] hiddenLayers)
         {
             InputDimension = inputDimension;
             OutputLayer = outputLayer;
@@ -26,7 +26,7 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
             {
                 if (i == Depth - 1) Layers[i] = outputLayer;
                 else Layers[i] = hiddenLayers[i];
-                Layers[i].Initialize(i == 0 ? inputDimension : Layers[i - 1].WeightCount);
+                Layers[i].Initialize(i == 0 ? inputDimension : Layers[i - 1].OutputDimension);
             }
         }
 
@@ -72,7 +72,7 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
                     costGradient[l][i] *= factor;
 
             for (int i = 1; i < Depth; i++)
-                Layers[i].UpdateWeights(costGradient[i]);
+                Layers[i].UpdateParameters(costGradient[i]);
         }
 
         private float[][] Backpropagate(TrainingSample sample)
@@ -80,40 +80,23 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
             // Forwards pass
             var (weightedInputs, activations) = GetWeightedInputsAndActivations(sample.Input);
 
-            var delCostOverDelWeightedInputs =
-                OutputLayer.GetDelCostOverDelWeightedInputs(weightedInputs.Last(), activations.Last(), sample.Output);
-
             // Backwards pass
-            float[][] delCostOverDelWeights = Layers.Select(l => new float[l.WeightCount]).ToArray();
+            float[][] costGradient = Layers.Select(l => new float[l.ParameterCount]).ToArray();
 
-            for (int l = Layers.Length - 1; l >= 0; l--)
+            var outputError =
+                OutputLayer.GetError(weightedInputs.Last(), activations.Last(), sample.Output);
+
+            costGradient[Depth - 1] = OutputLayer.BackpropagateParameters(outputError);
+
+            var delCostOverDelActivations = OutputLayer.BackpropagateErrorToActivation(outputError);
+
+            for (int l = HiddenLayers.Length - 1; l >= 0; l--)
             {
-                delCostOverDelWeights[l] = Layers[l].BackpropagateWeights(delCostOverDelWeightedInputs);
-                if (l != 0) delCostOverDelWeightedInputs = Layers[l].BackpropagateError(delCostOverDelWeightedInputs);
-
-                ////Calculate ∂C/∂w for every w in the current layer:
-                //for (int i = 0; i < Weights[l].GetLength(0); i++)
-                //    for (int j = 0; j < Weights[l].GetLength(1); j++)
-                //        delCostOverDelWeights[l][i, j] = // ∂C/∂w[l][i, j]
-                //            delCostOverDelWeightedInputs[i] * // ∂C/∂z[l + 1][i]
-                //            (j < Weights[l].GetLength(1) - 1 ? activations[l][j] : 1); // ∂z[l + 1][i]/∂w[l][i, j] = a[l][j] ((OR)) ∂z[l + 1][i]/∂b[l][i] = 1
-
-                //// Calculate ∂C/∂a for the previous layer(a[l]):
-                //if (l != 0)
-                //{
-                //    //var tempDelCostOverDelActivation = new float[Weights[l - 1].GetLength(0)];
-                //    var tempDelCostOverDelWeightedInputs = new float[Weights[l - 1].GetLength(0)];
-                //    for (int i = 0; i < Weights[l].GetLength(1) - 1; i++)
-                //        for (int j = 0; j < Weights[l].GetLength(0); j++)
-                //            tempDelCostOverDelWeightedInputs[i] += // ∂C/∂z[l][i] = sum over j:
-                //                delCostOverDelWeightedInputs[j] * // ∂C/∂z[l + 1][j]
-                //                Weights[l][j, i] * // ∂z[l + 1][j]/∂a[l][i] = w[l][j, i]
-                //                MLMath.SigmoidPrime(weightedInputs[l][i]); // ∂a[l][i]/∂z[l][i] = σ′(z[l][i])
-                //    delCostOverDelWeightedInputs = tempDelCostOverDelWeightedInputs;
-                //}
+                costGradient[l] = HiddenLayers[l].BackpropagateParameters(delCostOverDelActivations, weightedInputs[l + 1], activations[l]);
+                if (l != 0) delCostOverDelActivations = HiddenLayers[l].BackpropagateDelCostOverDelActivations(delCostOverDelActivations, weightedInputs[l + 1]);
             }
 
-            return delCostOverDelWeights;
+            return costGradient;
         }
 
         private (float[][], float[][]) GetWeightedInputsAndActivations(float[] input)
