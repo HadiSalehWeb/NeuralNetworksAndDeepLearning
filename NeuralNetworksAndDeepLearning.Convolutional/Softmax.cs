@@ -4,7 +4,7 @@ using System.Text;
 
 namespace NeuralNetworksAndDeepLearning.Convolutional
 {
-    public class Softmax : IOutputLayer
-    {
-    }
+    //public class Softmax : IOutputLayer
+    //{
+    //}
 }

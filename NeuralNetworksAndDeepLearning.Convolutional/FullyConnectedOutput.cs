@@ -9,16 +9,16 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
     {
         public abstract class CostFunction
         {
-            internal abstract ActivationFunctionType Activation { get; }
+            internal abstract (Func<float, float>, Func<float, float>) Activation { get; }
             internal abstract float Calculate(float[] activations, float[] output);
-            public static CostFunction CrossEntropy => new CrossEntropy();
-            public static CostFunction QuadraticCost(ActivationFunctionType activation) => new QuadraticCost(activation);
             internal abstract float[] Error(float[] output, float[] activations, float[] weightedInputs);
+            public static CostFunction CrossEntropy => new CrossEntropy();
+            public static CostFunction QuadraticCost((Func<float, float>, Func<float, float>) activation) => new QuadraticCost(activation);
         }
 
         private class CrossEntropy : CostFunction
         {
-            internal override ActivationFunctionType Activation => ActivationFunctionType.Sigmoid;
+            internal override (Func<float, float>, Func<float, float>) Activation => Activations.Sigmoid;
             public CrossEntropy() { }
 
             internal override float Calculate(float[] activations, float[] output)
@@ -26,12 +26,18 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
                 return (float)Enumerable.Range(0, activations.Length)
                     .Aggregate(0.0, (a, c) => a - output[c] * Math.Log(activations[c]) - (1 - output[c]) * Math.Log(1 - activations[c]));
             }
+
+            internal override float[] Error(float[] output, float[] activations, float[] weightedInputs)
+            {
+                return activations.Select((a, i) => a - output[i]).ToArray();
+            }
         }
 
         private class QuadraticCost : CostFunction
         {
-            internal override ActivationFunctionType Activation { get; }
-            public QuadraticCost(ActivationFunctionType activation)
+            internal override (Func<float, float>, Func<float, float>) Activation { get; }
+            private Func<float, float> ActivationDerivative => Activation.Item2;
+            public QuadraticCost((Func<float, float>, Func<float, float>) activation)
             {
                 Activation = activation;
             }
@@ -40,6 +46,11 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
             {
                 return Enumerable.Range(0, activations.Length)
                     .Aggregate(0f, (a, c) => a + (activations[c] - output[c]) * (activations[c] - output[c]));
+            }
+
+            internal override float[] Error(float[] output, float[] activations, float[] weightedInputs)
+            {
+                return activations.Select((a, i) => (a - output[i]) * ActivationDerivative(weightedInputs[i])).ToArray();
             }
         }
 
@@ -78,7 +89,13 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
 
         public float[] BackpropagateErrorToActivation(float[] error)
         {
-            throw new NotImplementedException();
+            float[] ret = new float[InputDimension];
+
+            for (int i = 0; i < InputDimension; i++)
+                for (int j = 0; j < OutputDimension; j++)
+                    ret[i] += error[j] * WeightMatrix[j, i];
+
+            return ret;
         }
     }
 }

@@ -6,37 +6,6 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
 {
     public static class MLMath
     {
-        public static float Sigmoid(float z)
-        {
-            return (float)(1f / (1f + Math.Exp(-z)));
-        }
-
-        public static float SigmoidPrime(float z)
-        {
-            return Sigmoid(z) * (1 - Sigmoid(z));
-        }
-
-        public static float Tanh(float z)
-        {
-            var e = Math.Exp(2 * z);
-            return (float)((e - 1) / (e + 1));
-        }
-
-        public static float TanhPrime(float z)
-        {
-            return 1 - Tanh(z) * Tanh(z);
-        }
-
-        public static float ReLU(float z)
-        {
-            return z <= 0 ? 0 : z;
-        }
-
-        public static float ReLUPrime(float z)
-        {
-            return z <= 0 ? 0 : 1;
-        }
-
         public static List<T> Shuffle<T>(this IEnumerable<T> data, Random rand)
         {
             List<T> ts = new List<T>(data);

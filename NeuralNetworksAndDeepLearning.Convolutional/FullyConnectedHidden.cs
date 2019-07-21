@@ -6,7 +6,7 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
 {
     public class FullyConnectedHidden : FullyConnected, IHiddenLayer
     {
-        public FullyConnectedHidden(int outputDimension, ActivationFunctionType activation) : base(outputDimension, activation) { }
+        public FullyConnectedHidden(int outputDimension, (Func<float, float>, Func<float, float>) activation) : base(outputDimension, activation) { }
 
         public float[] BackpropagateParameters(float[] delCostOverDelActivations, float[] outWeightedInputs, float[] inActivations)
         {

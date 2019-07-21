@@ -86,14 +86,14 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
             var outputError =
                 OutputLayer.GetError(weightedInputs.Last(), activations.Last(), sample.Output);
 
-            costGradient[Depth - 1] = OutputLayer.BackpropagateParameters(outputError);
+            costGradient[Depth - 1] = OutputLayer.BackpropagateParameters(outputError, Depth > 1 ? activations[Depth - 2] : sample.Input);
 
             var delCostOverDelActivations = OutputLayer.BackpropagateErrorToActivation(outputError);
 
             for (int l = HiddenLayers.Length - 1; l >= 0; l--)
             {
-                costGradient[l] = HiddenLayers[l].BackpropagateParameters(delCostOverDelActivations, weightedInputs[l + 1], activations[l]);
-                if (l != 0) delCostOverDelActivations = HiddenLayers[l].BackpropagateDelCostOverDelActivations(delCostOverDelActivations, weightedInputs[l + 1]);
+                costGradient[l] = HiddenLayers[l].BackpropagateParameters(delCostOverDelActivations, weightedInputs[l], l > 0 ? activations[l - 1] : sample.Input);
+                if (l != 0) delCostOverDelActivations = HiddenLayers[l].BackpropagateDelCostOverDelActivations(delCostOverDelActivations, weightedInputs[l]);
             }
 
             return costGradient;
@@ -101,12 +101,12 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
 
         private (float[][], float[][]) GetWeightedInputsAndActivations(float[] input)
         {
-            float[][] weightedInputs = new float[Depth - 1][], activations = new float[Depth - 1][];
+            float[][] weightedInputs = new float[Depth][], activations = new float[Depth][];
 
-            for (int i = 0; i < Depth - 1; i++)
+            for (int i = 0; i < Depth; i++)
             {
-                weightedInputs[i] = Layers[i + 1].GetWeightedInput(input);
-                activations[i] = Layers[i + 1].GetActivation(weightedInputs[i]);
+                weightedInputs[i] = Layers[i].GetWeightedInput(input);
+                activations[i] = Layers[i].GetActivation(weightedInputs[i]);
                 input = activations[i];
             }
 

@@ -6,13 +6,6 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
 {
     public abstract class FullyConnected : ILayer
     {
-        public enum ActivationFunctionType
-        {
-            Sigmoid,
-            Tanh,
-            ReLU
-        }
-
         protected float[,] WeightMatrix { get; set; }
         public int ParameterCount { get; private set; }
         public int OutputDimension { get; }
@@ -21,26 +14,10 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
         protected readonly Func<float, float> activationDerivative;
 
 
-        protected FullyConnected(int outputDimension, ActivationFunctionType activation)
+        protected FullyConnected(int outputDimension, (Func<float, float>, Func<float, float>) activation)
         {
             OutputDimension = outputDimension;
-            switch (activation)
-            {
-                case ActivationFunctionType.Sigmoid:
-                    activationFunction = MLMath.Sigmoid;
-                    activationDerivative = MLMath.SigmoidPrime;
-                    break;
-                case ActivationFunctionType.Tanh:
-                    activationFunction = MLMath.Tanh;
-                    activationDerivative = MLMath.TanhPrime;
-                    break;
-                case ActivationFunctionType.ReLU:
-                    activationFunction = MLMath.ReLU;
-                    activationDerivative = MLMath.ReLUPrime;
-                    break;
-                default:
-                    throw new Exception($"Invalid ActivationFunctionType: { activation.ToString() }");
-            }
+            (activationFunction, activationDerivative) = activation;
         }
 
         public void Initialize(int outputDimensionOfPreviousLayer)

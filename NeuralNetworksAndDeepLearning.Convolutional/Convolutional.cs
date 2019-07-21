@@ -4,7 +4,7 @@ using System.Text;
 
 namespace NeuralNetworksAndDeepLearning.Convolutional
 {
-    public class Convolutional : IHiddenLayer
-    {
-    }
+    //public class Convolutional : IHiddenLayer
+    //{
+    //}
 }
