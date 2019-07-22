@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace NeuralNetworksAndDeepLearning.Convolutional
 {
@@ -10,8 +8,9 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
             (SigmoidFun, z => SigmoidFun(z) * (1 - SigmoidFun(z)));
         public static (Func<float, float>, Func<float, float>) Tanh =
             (TanhFun, z => 1 - TanhFun(z) * TanhFun(z));
-        public static (Func<float, float>, Func<float, float>) ReLU =
-            (z => z <= 0 ? 0 : z, z => z <= 0 ? 0 : 1);
+        //Todo: this shit
+        //public static (Func<float, float>, Func<float, float>) ReLU =
+        //    (z => z <= 0 ? 0 : z, z => z <= 0 ? 0 : 1);
 
         private static float SigmoidFun(float z)
         {

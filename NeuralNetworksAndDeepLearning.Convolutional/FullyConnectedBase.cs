@@ -20,29 +20,29 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
             InputDimension = outputDimensionOfPreviousLayer;
             WeightMatrix = new float[OutputDimension, outputDimensionOfPreviousLayer + 1];
 
-            var std = 1 / (float)Math.Sqrt(outputDimensionOfPreviousLayer);
+            var stdv = 1 / (float)Math.Sqrt(outputDimensionOfPreviousLayer);
             var rand = new Random();
 
             for (int i = 0; i < OutputDimension; i++)
                 for (int j = 0; j < outputDimensionOfPreviousLayer + 1; j++)
-                    WeightMatrix[i, j] = j == outputDimensionOfPreviousLayer ? 0 : MLMath.Gaussian(rand, 0, std);
+                    WeightMatrix[i, j] = MLMath.Gaussian(rand, 0, j == outputDimensionOfPreviousLayer ? 1 : stdv);
         }
 
         public float[] GetWeightedInput(float[] input)
         {
-            float[] ret = new float[OutputDimension];
+            float[] weightedInput = new float[OutputDimension];
 
             for (int i = 0; i < OutputDimension; i++)
             {
-                ret[i] = 0f;
+                weightedInput[i] = 0f;
 
                 for (int j = 0; j < InputDimension; j++)
-                    ret[i] += input[j] * WeightMatrix[i, j];
+                    weightedInput[i] += input[j] * WeightMatrix[i, j];
 
-                ret[i] += WeightMatrix[i, InputDimension];
+                weightedInput[i] += WeightMatrix[i, InputDimension];
             }
 
-            return ret;
+            return weightedInput;
         }
 
         public float[] Feedforward(float[] input)

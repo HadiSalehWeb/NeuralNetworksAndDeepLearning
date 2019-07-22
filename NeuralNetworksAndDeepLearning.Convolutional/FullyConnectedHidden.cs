@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace NeuralNetworksAndDeepLearning.Convolutional
 {
@@ -10,34 +8,34 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
 
         public float[] BackpropagateParameters(float[] delCostOverDelActivations, float[] outWeightedInputs, float[] inActivations)
         {
-            float[] ret = new float[WeightMatrix.GetLength(0) * WeightMatrix.GetLength(1)];
+            float[] gradient = new float[WeightMatrix.GetLength(0) * WeightMatrix.GetLength(1)];
             for (int i = 0; i < OutputDimension; i++)
             {
                 var index = i * (InputDimension + 1);
                 var delCostOverDelBias = delCostOverDelActivations[i] * activationDerivative(outWeightedInputs[i]);
 
                 for (int j = 0; j < InputDimension; j++)
-                    ret[index + j] = delCostOverDelBias * inActivations[j];
+                    gradient[index + j] = delCostOverDelBias * inActivations[j];
 
-                ret[index + InputDimension] = delCostOverDelBias;
+                gradient[index + InputDimension] = delCostOverDelBias;
             }
 
-            return ret;
+            return gradient;
         }
 
         public float[] BackpropagateDelCostOverDelActivations(float[] delCostOverDelActivations, float[] outWeightedInputs)
         {
-            float[] ret = new float[InputDimension];
+            float[] del = new float[InputDimension];
 
             for (int i = 0; i < InputDimension; i++)
             {
-                ret[i] = 0f;
+                del[i] = 0f;
 
                 for (int j = 0; j < OutputDimension; j++)
-                    ret[i] += delCostOverDelActivations[j] * activationDerivative(outWeightedInputs[j]) * WeightMatrix[j, i];
+                    del[i] += delCostOverDelActivations[j] * activationDerivative(outWeightedInputs[j]) * WeightMatrix[j, i];
             }
 
-            return ret;
+            return del;
         }
     }
 }

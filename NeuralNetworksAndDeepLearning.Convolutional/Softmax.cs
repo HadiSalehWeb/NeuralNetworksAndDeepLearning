@@ -28,29 +28,29 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
 
         public float[] BackpropagateParameters(float[] error, float[] inActivations)
         {
-            float[] ret = new float[WeightMatrix.GetLength(0) * WeightMatrix.GetLength(1)];
+            float[] gradient = new float[WeightMatrix.GetLength(0) * WeightMatrix.GetLength(1)];
             for (int i = 0; i < OutputDimension; i++)
             {
                 var index = i * (InputDimension + 1);
 
                 for (int j = 0; j < InputDimension; j++)
-                    ret[index + j] = error[i] * inActivations[j];
+                    gradient[index + j] = error[i] * inActivations[j];
 
-                ret[index + InputDimension] = error[i];
+                gradient[index + InputDimension] = error[i];
             }
 
-            return ret;
+            return gradient;
         }
 
         public float[] BackpropagateErrorToActivation(float[] error)
         {
-            float[] ret = new float[InputDimension];
+            float[] del = new float[InputDimension];
 
             for (int i = 0; i < InputDimension; i++)
                 for (int j = 0; j < OutputDimension; j++)
-                    ret[i] += error[j] * WeightMatrix[j, i];
+                    del[i] += error[j] * WeightMatrix[j, i];
 
-            return ret;
+            return del;
         }
     }
 }
