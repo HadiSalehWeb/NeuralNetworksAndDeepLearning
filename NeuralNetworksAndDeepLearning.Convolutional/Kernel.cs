@@ -2,13 +2,13 @@
 
 namespace NeuralNetworksAndDeepLearning.Convolutional
 {
-    public struct FeatureMap
+    public struct Kernel
     {
         public float[,,] Weights { get; }
-        public float Bias { get; }
+        public float Bias { get; set; }
 
-        public FeatureMap(int depth, int width, int height) : this(depth, width, height, new Random(DateTime.Now.ToString().GetHashCode())) { }
-        public FeatureMap(int depth, int width, int height, Random rand)
+        public Kernel(int depth, int width, int height) : this(depth, width, height, new Random(DateTime.Now.ToString().GetHashCode())) { }
+        public Kernel(int depth, int width, int height, Random rand)
         {
             Weights = new float[depth, width, height];
             var stdv = 1 / (float)Math.Sqrt(depth * width * height);
@@ -21,7 +21,7 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
             Bias = MLMath.Gaussian(rand, 0, 1);
         }
 
-        public FeatureMap(float[,,] weights, float bias)
+        public Kernel(float[,,] weights, float bias)
         {
             Weights = weights;
             Bias = bias;
