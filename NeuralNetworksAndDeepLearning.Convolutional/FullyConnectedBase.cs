@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 namespace NeuralNetworksAndDeepLearning.Convolutional
 {
@@ -41,6 +42,8 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
 
                 weightedInput[i] += WeightMatrix[i, InputDimension];
             }
+
+            if (weightedInput.Any(float.IsInfinity)) throw new Exception("Yo what the fuck");
 
             return weightedInput;
         }

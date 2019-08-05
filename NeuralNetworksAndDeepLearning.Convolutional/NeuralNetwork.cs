@@ -30,6 +30,11 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
             }
         }
 
+        public int Validate(IEnumerable<TrainingSample> trainingData, Func<float[], float[], bool> ValidateSample)
+        {
+            return trainingData.Aggregate(0, (a, c) => ValidateSample(Feedforward(c.Input), c.Output) ? a + 1 : a);
+        }
+
         public float Cost(IEnumerable<TrainingSample> data)
         {
             return data.Sum(d => OutputLayer.Cost(HiddenLayers.Aggregate(d.Input, (a, c) => c.Feedforward(a)), d.Output)) / data.Count();
@@ -65,13 +70,13 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
                 return a;
             });
 
-            var factor = learningRate / batch.Count();
+            var factor = -learningRate / batch.Count();
 
             for (int l = 0; l < costGradient.Length; l++)
                 for (int i = 0; i < costGradient[l].Length; i++)
                     costGradient[l][i] *= factor;
 
-            for (int i = 1; i < Depth; i++)
+            for (int i = 0; i < Depth; i++)
                 Layers[i].UpdateParameters(costGradient[i]);
         }
 
@@ -84,7 +89,7 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
             float[][] costGradient = Layers.Select(l => new float[l.ParameterCount]).ToArray();
 
             var outputError =
-                OutputLayer.GetError(weightedInputs.Last(), activations.Last(), sample.Output);
+                OutputLayer.GetError(sample.Output, activations.Last(), weightedInputs.Last());
 
             costGradient[Depth - 1] = OutputLayer.BackpropagateParameters(outputError, Depth > 1 ? activations[Depth - 2] : sample.Input);
 

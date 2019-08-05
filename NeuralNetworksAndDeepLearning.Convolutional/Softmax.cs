@@ -10,9 +10,12 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
 
         public override float[] GetActivation(float[] weightedInput)
         {
-            var exp = weightedInput.Select(z => Math.Exp(z));
+            var maxW = weightedInput.Max();
+            var exp = weightedInput.Select(z => Math.Exp(z - maxW));
             var sum = exp.Sum();
-            return exp.Select(ez => (float)(ez / sum)).ToArray();
+            var ret = exp.Select(ez => (float)(ez / sum)).ToArray();
+            if (ret.Any(float.IsNaN)) throw new Exception("Yo what the fuck");
+            return ret;
         }
 
         public float Cost(float[] previousActivations, float[] output)

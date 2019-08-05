@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using NeuralNetworksAndDeepLearning.Visualizer;
 using SixLabors.ImageSharp;
+using NeuralNetworksAndDeepLearning.Convolutional;
 
 namespace NeuralNetworksAndDeepLearning.Demo
 {
@@ -11,10 +12,10 @@ namespace NeuralNetworksAndDeepLearning.Demo
     {
         const int BATCH_SIZE = 10;
         const int EPOCH_COUNT = 10;
-        const string TRAINING_IMAGES_PATH = @"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\Demo\Training Data\train-images.idx3-ubyte";
-        const string TRAINING_LABELS_PATH = @"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\Demo\Training Data\train-labels.idx1-ubyte";
-        const string TEST_IMAGES_PATH = @"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\Demo\Training Data\t10k-images.idx3-ubyte";
-        const string TEST_LABELS_PATH = @"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\Demo\Training Data\t10k-labels.idx1-ubyte";
+        const string TRAINING_IMAGES_PATH = @"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\NeuralNetworksAndDeepLearning.Demo\Training Data\train-images.idx3-ubyte";
+        const string TRAINING_LABELS_PATH = @"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\NeuralNetworksAndDeepLearning.Demo\Training Data\train-labels.idx1-ubyte";
+        const string TEST_IMAGES_PATH = @"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\NeuralNetworksAndDeepLearning.Demo\Training Data\t10k-images.idx3-ubyte";
+        const string TEST_LABELS_PATH = @"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\NeuralNetworksAndDeepLearning.Demo\Training Data\t10k-labels.idx1-ubyte";
         const int INPUT_COUNT = 784;
         const int HIDDEN_COUNT = 30;
         const int OUTPUT_COUNT = 10;
@@ -23,7 +24,7 @@ namespace NeuralNetworksAndDeepLearning.Demo
 
         static void Main(string[] args)
         {
-            TrainOnMnistAndSave();
+            TrainConvOnMnistAndSave();
             //VisualizeNetwork(
             //    @"c:\users\hadis\source\repos\neuralnetworksanddeeplearning\demo\nets",
             //    @"c:\users\hadis\source\repos\neuralnetworksanddeeplearning\demo\visualizations",
@@ -58,9 +59,42 @@ namespace NeuralNetworksAndDeepLearning.Demo
             Console.WriteLine(string.Join(", ", net.Feedforward(layer)));
         }
 
-        public static void TrainOnMnistAndSave(bool printBatchProgress = false, bool printCostEveryEpoch = false, bool printFetchStats = false)
+        //public static void TrainOnMnistAndSave(bool printBatchProgress = false, bool printCostEveryEpoch = false, bool printFetchStats = false)
+        //{
+        //    var network = new NeuralNetwork<CrossEntropy>(new List<int>() { INPUT_COUNT, HIDDEN_COUNT, HIDDEN_COUNT, OUTPUT_COUNT }, Regularization.L2);
+
+        //    var rawData = FetchData(TRAINING_LABELS_PATH, TRAINING_IMAGES_PATH, printFetchStats);
+        //    var trainingData = rawData.Take(50000).ToArray();
+        //    var validationData = rawData.Skip(50000).ToArray();
+        //    var testData = FetchData(TEST_LABELS_PATH, TEST_IMAGES_PATH, printFetchStats);
+        //    Action<int> onBatch = null;
+
+        //    if (printBatchProgress)
+        //    {
+        //        var batchCount = trainingData.Length / BATCH_SIZE;
+        //        onBatch = i =>
+        //        {
+        //            Console.WriteLine($"Batch progress: { i }/{ batchCount }");
+        //            Console.SetCursorPosition(0, Console.CursorTop - 1);
+        //        };
+        //    }
+        //    var accuracy = network.Validate(testData, (a, o) => ValidateSample(a, o));
+        //    Console.WriteLine($"Starting Cost: { (printCostEveryEpoch ? network.Cost(testData) : -1) }, Accuracy: { accuracy } / { testData.Count() }, { 100.0 * accuracy / testData.Count() }%");
+
+        //    network.SGD(trainingData, EPOCH_COUNT, BATCH_SIZE, LEARNING_RATE, REGULARIZATION_RATE, i =>
+        //    {
+        //        accuracy = network.Validate(testData, (a, o) => ValidateSample(a, o));
+        //        Console.WriteLine($"Finished epoch { i }. Cost: { (printCostEveryEpoch ? network.Cost(testData) : -1) }, Accuracy: { accuracy } / { testData.Count() }, { 100.0 * accuracy / testData.Count() }%");
+        //    }, onBatch);
+
+        //    network.Save(@"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\Demo\nets\test.mlp");
+        //}
+
+        public static void TrainConvOnMnistAndSave(bool printBatchProgress = false, bool printCostEveryEpoch = false, bool printFetchStats = false)
         {
-            var network = new NeuralNetwork<CrossEntropy>(new List<int>() { INPUT_COUNT, HIDDEN_COUNT, HIDDEN_COUNT, OUTPUT_COUNT }, Regularization.L2);
+            //var network = new NeuralNetwork<CrossEntropy>(new List<int>() { INPUT_COUNT, HIDDEN_COUNT, HIDDEN_COUNT, OUTPUT_COUNT }, Regularization.L2);
+            var network = new NeuralNetwork(INPUT_COUNT, new Softmax(OUTPUT_COUNT), new Convolutional.Convolutional(1, 1, 5, 1, 1, 28, 28, Activations.Sigmoid));
+            //var network = new NeuralNetwork(INPUT_COUNT, new Softmax(OUTPUT_COUNT), new FullyConnectedHidden(30, Activations.Sigmoid));
 
             var rawData = FetchData(TRAINING_LABELS_PATH, TRAINING_IMAGES_PATH, printFetchStats);
             var trainingData = rawData.Take(50000).ToArray();
@@ -80,13 +114,50 @@ namespace NeuralNetworksAndDeepLearning.Demo
             var accuracy = network.Validate(testData, (a, o) => ValidateSample(a, o));
             Console.WriteLine($"Starting Cost: { (printCostEveryEpoch ? network.Cost(testData) : -1) }, Accuracy: { accuracy } / { testData.Count() }, { 100.0 * accuracy / testData.Count() }%");
 
-            network.SGD(trainingData, EPOCH_COUNT, BATCH_SIZE, LEARNING_RATE, REGULARIZATION_RATE, i =>
+            network.SGD(trainingData, EPOCH_COUNT, BATCH_SIZE, LEARNING_RATE,/* REGULARIZATION_RATE, */i =>
             {
                 accuracy = network.Validate(testData, (a, o) => ValidateSample(a, o));
                 Console.WriteLine($"Finished epoch { i }. Cost: { (printCostEveryEpoch ? network.Cost(testData) : -1) }, Accuracy: { accuracy } / { testData.Count() }, { 100.0 * accuracy / testData.Count() }%");
             }, onBatch);
 
-            network.Save(@"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\Demo\nets\test.mlp");
+            //network.Save(@"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\Demo\nets\test.mlp");
+        }
+        public static void XOR(bool printBatchProgress = false, bool printCostEveryEpoch = false, bool printFetchStats = false)
+        {
+            var network = new NeuralNetwork(
+                2,
+                new FullyConnectedOutput(1, FullyConnectedOutput.CostFunction.CrossEntropy),
+                new FullyConnectedHidden(2, Activations.Sigmoid)
+            );
+
+            var trainingData = new Convolutional.TrainingSample[] {
+                new Convolutional.TrainingSample(new float[]{ 0, 0 }, new float[]{ 0 }),
+                new Convolutional.TrainingSample(new float[]{ 0, 1 }, new float[]{ 1 }),
+                new Convolutional.TrainingSample(new float[]{ 1, 0 }, new float[]{ 1 }),
+                new Convolutional.TrainingSample(new float[]{ 1, 1 }, new float[]{ 0 }),
+            };
+            var testData = trainingData;
+            Action<int> onBatch = null;
+
+            if (printBatchProgress)
+            {
+                var batchCount = trainingData.Length / BATCH_SIZE;
+                onBatch = i =>
+                {
+                    Console.WriteLine($"Batch progress: { i }/{ batchCount }");
+                    Console.SetCursorPosition(0, Console.CursorTop - 1);
+                };
+            }
+            var accuracy = network.Validate(testData, (a, o) => ValidateSample(a, o));
+            Console.WriteLine($"Starting Cost: { (printCostEveryEpoch ? network.Cost(testData) : -1) }, Accuracy: { accuracy } / { testData.Count() }, { 100.0 * accuracy / testData.Count() }%");
+
+            network.SGD(trainingData, 1000, 4, 10,/* REGULARIZATION_RATE, */i =>
+            {
+                accuracy = network.Validate(testData, (a, o) => ValidateSample(a, o));
+                Console.WriteLine($"Finished epoch { i }. Cost: { (printCostEveryEpoch ? network.Cost(testData) : -1) }, Accuracy: { accuracy } / { testData.Count() }, { 100.0 * accuracy / testData.Count() }%");
+            }, onBatch);
+
+            //network.Save(@"C:\Users\hadis\source\repos\NeuralNetworksAndDeepLearning\Demo\nets\test.mlp");
         }
 
         public static void VisualizeNetwork(string src, string dest, string networkName)
@@ -114,6 +185,7 @@ namespace NeuralNetworksAndDeepLearning.Demo
 
         private static bool ValidateSample(float[] activations, float[] output)
         {
+            //return activations[0] > .5 && output[0] > .5 || activations[0] < .5 && output[0] < .5;
             float maxActivation = float.MinValue;
             int maxActivationIndex = -2, maxOutputIndex = -1;
             for (int i = 0; i < activations.Length; i++)
@@ -125,7 +197,7 @@ namespace NeuralNetworksAndDeepLearning.Demo
             return maxActivationIndex == maxOutputIndex;
         }
 
-        private static TrainingSample[] FetchData(string labelPath, string imagePath, bool print = false)
+        private static Convolutional.TrainingSample[] FetchData(string labelPath, string imagePath, bool print = false)
         {
             BinaryReader labels = new BinaryReader(new FileStream(labelPath, FileMode.Open));
 
@@ -139,7 +211,7 @@ namespace NeuralNetworksAndDeepLearning.Demo
             int width = ReadBigInt32(images);
             int height = ReadBigInt32(images);
 
-            TrainingSample[] ret = new TrainingSample[numberOfImages];
+            Convolutional.TrainingSample[] ret = new Convolutional.TrainingSample[numberOfImages];
 
             if (print)
             {
@@ -156,7 +228,7 @@ namespace NeuralNetworksAndDeepLearning.Demo
             for (int i = 0; i < numberOfImages; i++)
             {
                 var label = labels.ReadByte();
-                ret[i] = new TrainingSample(
+                ret[i] = new Convolutional.TrainingSample(
                     images.ReadBytes(width * height).Select(x => x / 255f).ToArray(),
                     Enumerable.Range(0, 10).Select(c => c == label ? 1f : 0f).ToArray()
                 );
