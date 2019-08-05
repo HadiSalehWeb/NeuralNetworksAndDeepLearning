@@ -6,9 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NeuralNetworksAndDeepLearning.Convolutional\NeuralNetworksAndDeepLearning.Convolutional.csproj" />
     <ProjectReference Include="..\NeuralNetworksAndDeepLearning.Visualizer\NeuralNetworksAndDeepLearning.Visualizer.csproj" />
-    <ProjectReference Include="..\NeuralNetworksAndDeepLearning\NeuralNetworksAndDeepLearning.csproj" />
   </ItemGroup>
 
   <ItemGroup>

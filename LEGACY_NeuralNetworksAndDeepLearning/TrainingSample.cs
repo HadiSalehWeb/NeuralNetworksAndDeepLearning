@@ -1,4 +1,8 @@
-﻿namespace NeuralNetworksAndDeepLearning.Convolutional
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace NeuralNetworksAndDeepLearning
 {
     public struct TrainingSample
     {
