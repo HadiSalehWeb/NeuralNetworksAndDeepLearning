@@ -1,10 +1,14 @@
-﻿using System;
+﻿using NeuralNetworksAndDeepLearning.Interface;
+using NeuralNetworksAndDeepLearning.Model;
+using NeuralNetworksAndDeepLearning.Layer;
+using NeuralNetworksAndDeepLearning.Util;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 //Todo: regularization
 
-namespace NeuralNetworksAndDeepLearning.Convolutional
+namespace NeuralNetworksAndDeepLearning
 {
     public class NeuralNetwork
     {
@@ -12,7 +16,7 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
         public IHiddenLayer[] HiddenLayers { get; }
         public IOutputLayer OutputLayer { get; }
         public int Depth { get; }
-        public ILayer[] Layers { get; }
+        public ILayer<IForwardPropData>[] Layers { get; }
 
         public NeuralNetwork(int inputDimension, IOutputLayer outputLayer, params IHiddenLayer[] hiddenLayers)
         {
@@ -21,7 +25,8 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
             HiddenLayers = hiddenLayers;
             Depth = 1 + hiddenLayers.Length;
 
-            Layers = new ILayer[Depth];
+            Layers = new ILayer<IForwardPropData>[Depth];
+            Layers[0] = new FullyConnectedHidden(1, (null, null));
             for (int i = 0; i < Depth; i++)
             {
                 if (i == Depth - 1) Layers[i] = outputLayer;

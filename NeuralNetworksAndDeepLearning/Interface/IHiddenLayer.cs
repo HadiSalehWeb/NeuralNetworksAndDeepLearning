@@ -1,8 +1,8 @@
-﻿namespace NeuralNetworksAndDeepLearning.Convolutional
+﻿namespace NeuralNetworksAndDeepLearning.Interface
 {
-    public interface IHiddenLayer : ILayer
+    public interface IHiddenLayer 
     {
-        float[] BackpropagateParameters(float[] delCostOverDelActivations, float[] outWeightedInputs, float[] inActivations);
-        float[] BackpropagateDelCostOverDelActivations(float[] delCostOverDelActivations, float[] outWeightedInputs);
+        float[] Backprop(float[] delCostOverDelActivations, IForwardPropData ownForwardPropData, IForwardPropData nextForwardPropData);
+        float[] BackpropagateDelCostOverDelActivations(float[] delCostOverDelActivations, IForwardPropData ownForwardPropData);
     }
 }

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace NeuralNetworksAndDeepLearning.Convolutional
+namespace NeuralNetworksAndDeepLearning.Util
 {
     public static class MLMath
     {
@@ -62,16 +62,6 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
                     (val, index) = (list[i], i);
 
             return index;
-        }
-
-        internal static float[] Activate(float[] weightedInput, Func<float, float> activationFunction)
-        {
-            float[] activation = new float[weightedInput.Length];
-
-            for (int i = 0; i < weightedInput.Length; i++)
-                activation[i] = activationFunction(weightedInput[i]);
-
-            return activation;
         }
     }
 }

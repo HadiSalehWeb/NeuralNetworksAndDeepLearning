@@ -2,9 +2,9 @@
 
 //todo: formalize Random() creation?
 
-namespace NeuralNetworksAndDeepLearning.Convolutional
+namespace NeuralNetworksAndDeepLearning.Layer
 {
-    public abstract class FullyConnected : FullyConnectedBase, ILayer
+    public abstract class FullyConnected : FullyConnectedBase
     {
         protected readonly Func<float, float> activationFunction;
         protected readonly Func<float, float> activationDerivative;
@@ -16,7 +16,12 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
 
         public override float[] GetActivation(float[] weightedInput)
         {
-            return MLMath.Activate(weightedInput, activationFunction);
+            float[] activation = new float[weightedInput.Length];
+
+            for (int i = 0; i < weightedInput.Length; i++)
+                activation[i] = activationFunction(weightedInput[i]);
+
+            return activation;
         }
     }
 }

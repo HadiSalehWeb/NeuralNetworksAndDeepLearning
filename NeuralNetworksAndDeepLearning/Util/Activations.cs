@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace NeuralNetworksAndDeepLearning.Convolutional
+namespace NeuralNetworksAndDeepLearning.Util
 {
     public static class Activations
     {

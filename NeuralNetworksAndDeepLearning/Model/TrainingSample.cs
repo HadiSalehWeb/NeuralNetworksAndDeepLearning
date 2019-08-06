@@ -1,4 +1,4 @@
-﻿namespace NeuralNetworksAndDeepLearning.Convolutional
+﻿namespace NeuralNetworksAndDeepLearning.Convolutional.Model
 {
     public struct TrainingSample
     {

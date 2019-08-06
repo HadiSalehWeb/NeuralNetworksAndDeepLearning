@@ -1,13 +1,22 @@
 ﻿using System;
 using System.Linq;
+using NeuralNetworksAndDeepLearning.Interface;
+using NeuralNetworksAndDeepLearning.Model;
+using NeuralNetworksAndDeepLearning.Util;
 
-namespace NeuralNetworksAndDeepLearning.Convolutional
+namespace NeuralNetworksAndDeepLearning.Layer
 {
     public class FullyConnectedOutput : FullyConnected, IOutputLayer
     {
         public abstract class CostFunction
         {
-            internal abstract (Func<float, float>, Func<float, float>) Activation { get; }
+            internal (Func<float, float>, Func<float, float>) Activation { get; }
+
+            protected CostFunction((Func<float, float>, Func<float, float>) activation)
+            {
+                Activation = activation;
+            }
+
             internal abstract float Calculate(float[] activations, float[] output);
             internal abstract float[] Error(float[] output, float[] activations, float[] weightedInputs);
             public static CostFunction CrossEntropy => new CrossEntropy();
@@ -16,8 +25,7 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
 
         private class CrossEntropy : CostFunction
         {
-            internal override (Func<float, float>, Func<float, float>) Activation => Activations.Sigmoid;
-            public CrossEntropy() { }
+            public CrossEntropy() : base(Activations.Sigmoid) { }
 
             internal override float Calculate(float[] activations, float[] output)
             {
@@ -33,12 +41,8 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
 
         private class QuadraticCost : CostFunction
         {
-            internal override (Func<float, float>, Func<float, float>) Activation { get; }
             private Func<float, float> ActivationDerivative => Activation.Item2;
-            public QuadraticCost((Func<float, float>, Func<float, float>) activation)
-            {
-                Activation = activation;
-            }
+            public QuadraticCost((Func<float, float>, Func<float, float>) activation) : base(activation) { }
 
             internal override float Calculate(float[] activations, float[] output)
             {
@@ -52,37 +56,16 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
             }
         }
 
-        private readonly CostFunction cost;
+        private readonly CostFunction costFunction;
 
-        public FullyConnectedOutput(int outputDimension, CostFunction cost) : base(outputDimension, cost.Activation)
+        public FullyConnectedOutput(int outputDimension, CostFunction costFunction) : base(outputDimension, costFunction.Activation)
         {
-            this.cost = cost;
+            this.costFunction = costFunction;
         }
 
         public float Cost(float[] previousActivations, float[] output)
         {
-            return cost.Calculate(Feedforward(previousActivations), output);
-        }
-
-        public float[] GetError(float[] output, float[] activations, float[] weightedInputs)
-        {
-            return cost.Error(output, activations, weightedInputs);
-        }
-
-        public float[] BackpropagateParameters(float[] error, float[] inActivations)
-        {
-            float[] gradient = new float[WeightMatrix.GetLength(0) * WeightMatrix.GetLength(1)];
-            for (int i = 0; i < OutputDimension; i++)
-            {
-                var index = i * (InputDimension + 1);
-
-                for (int j = 0; j < InputDimension; j++)
-                    gradient[index + j] = error[i] * inActivations[j];
-
-                gradient[index + InputDimension] = error[i];
-            }
-
-            return gradient;
+            return costFunction.Calculate(Feedforward(previousActivations), output);
         }
 
         public float[] BackpropagateErrorToActivation(float[] error)
@@ -94,6 +77,27 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
                     del[i] += error[j] * WeightMatrix[j, i];
 
             return del;
+        }
+
+        public float[] GetError(float[] output, IForwardPropData ownForwardPropData)
+        {
+            return costFunction.Error(output, ownForwardPropData.Activations, ownForwardPropData.WeightedInputs);
+        }
+
+        public float[] Backprop(float[] error, IForwardPropData ownForwardPropData)
+        {
+            float[] gradient = new float[WeightMatrix.GetLength(0) * WeightMatrix.GetLength(1)];
+            for (int i = 0; i < OutputDimension; i++)
+            {
+                var index = i * (InputDimension + 1);
+
+                for (int j = 0; j < InputDimension; j++)
+                    gradient[index + j] = error[i] * ownForwardPropData.Activations[j];
+
+                gradient[index + InputDimension] = error[i];
+            }
+
+            return gradient;
         }
     }
 }

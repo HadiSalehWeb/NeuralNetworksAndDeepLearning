@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Linq;
+using NeuralNetworksAndDeepLearning.Interface;
+using NeuralNetworksAndDeepLearning.Model;
 
-namespace NeuralNetworksAndDeepLearning.Convolutional
+namespace NeuralNetworksAndDeepLearning.Layer
 {
     //Todo: is FullyConnectedBase's weightInit actually a valid way of initializing weights for a softmax layer? Revise the NNADL section and think about it
     public class Softmax : FullyConnectedBase, IOutputLayer
@@ -24,27 +26,6 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
             return (float)Enumerable.Range(0, output.Length).Aggregate(0.0, (a, c) => a - output[c] * Math.Log(activations[c]) - (1 - output[c]) * Math.Log(1 - activations[c]));
         }
 
-        public float[] GetError(float[] output, float[] activations, float[] weightedInputs)
-        {
-            return activations.Select((a, i) => a - output[i]).ToArray();
-        }
-
-        public float[] BackpropagateParameters(float[] error, float[] inActivations)
-        {
-            float[] gradient = new float[WeightMatrix.GetLength(0) * WeightMatrix.GetLength(1)];
-            for (int i = 0; i < OutputDimension; i++)
-            {
-                var index = i * (InputDimension + 1);
-
-                for (int j = 0; j < InputDimension; j++)
-                    gradient[index + j] = error[i] * inActivations[j];
-
-                gradient[index + InputDimension] = error[i];
-            }
-
-            return gradient;
-        }
-
         public float[] BackpropagateErrorToActivation(float[] error)
         {
             float[] del = new float[InputDimension];
@@ -54,6 +35,27 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
                     del[i] += error[j] * WeightMatrix[j, i];
 
             return del;
+        }
+
+        public float[] GetError(float[] output, IForwardPropData ownForwardPropData)
+        {
+            return ownForwardPropData.Activations.Select((a, i) => a - output[i]).ToArray();
+        }
+
+        public float[] Backprop(float[] error, IForwardPropData ownForwardPropData)
+        {
+            float[] gradient = new float[WeightMatrix.GetLength(0) * WeightMatrix.GetLength(1)];
+            for (int i = 0; i < OutputDimension; i++)
+            {
+                var index = i * (InputDimension + 1);
+
+                for (int j = 0; j < InputDimension; j++)
+                    gradient[index + j] = error[i] * ownForwardPropData.Activations[j];
+
+                gradient[index + InputDimension] = error[i];
+            }
+
+            return gradient;
         }
     }
 }

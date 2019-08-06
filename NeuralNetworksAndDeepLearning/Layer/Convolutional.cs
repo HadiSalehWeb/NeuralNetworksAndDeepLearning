@@ -1,7 +1,9 @@
-﻿using System;
+﻿using NeuralNetworksAndDeepLearning.Interface;
+using NeuralNetworksAndDeepLearning.Model;
+using System;
 using System.Linq;
 
-namespace NeuralNetworksAndDeepLearning.Convolutional
+namespace NeuralNetworksAndDeepLearning.Layer
 {
     public class Convolutional : IHiddenLayer
     {
@@ -136,7 +138,7 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
             }
         }
 
-        public float[] BackpropagateParameters(float[] delCostOverDelActivations, float[] outWeightedInputs, float[] inActivations)
+        public float[] Backprop(float[] delCostOverDelActivations, IForwardPropData ownForwardPropData, IForwardPropData nextForwardPropData)
         {
             float[] gradient = new float[KernelCount * (KernelDepth * KernelWidth * KernelHeight + 1)];
 
@@ -180,6 +182,11 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
                                         Kernels[l].Weights[i, j, k];
 
             return gradient;
+        }
+
+        public float[] BackpropagateDelCostOverDelActivations(float[] delCostOverDelActivations, IForwardPropData ownForwardPropData)
+        {
+            throw new NotImplementedException();
         }
     }
 }

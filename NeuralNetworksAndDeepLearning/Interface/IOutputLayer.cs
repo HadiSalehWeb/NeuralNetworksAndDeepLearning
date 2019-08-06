@@ -1,10 +1,10 @@
-﻿namespace NeuralNetworksAndDeepLearning.Convolutional
+﻿namespace NeuralNetworksAndDeepLearning.Interface
 {
-    public interface IOutputLayer : ILayer
+    public interface IOutputLayer
     {
         float Cost(float[] previousActivations, float[] output);
-        float[] GetError(float[] output, float[] activations, float[] weightedInputs);
-        float[] BackpropagateParameters(float[] error, float[] inActivations);
+        float[] GetError(float[] output, IForwardPropData ownForwardPropData);
+        float[] Backprop(float[] error, IForwardPropData ownForwardPropData);
         float[] BackpropagateErrorToActivation(float[] error);
     }
 }

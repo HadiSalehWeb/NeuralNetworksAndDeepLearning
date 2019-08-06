@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Linq;
+using NeuralNetworksAndDeepLearning.Interface;
+using NeuralNetworksAndDeepLearning.Model;
+using NeuralNetworksAndDeepLearning.Util;
 
-namespace NeuralNetworksAndDeepLearning.Convolutional
+namespace NeuralNetworksAndDeepLearning.Layer
 {
     public abstract class FullyConnectedBase : ILayer
     {
@@ -22,7 +25,7 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
             WeightMatrix = new float[OutputDimension, outputDimensionOfPreviousLayer + 1];
 
             var stdv = 1 / (float)Math.Sqrt(outputDimensionOfPreviousLayer);
-            var rand = new Random();
+            var rand = new Random();//TODO: formalize this
 
             for (int i = 0; i < OutputDimension; i++)
                 for (int j = 0; j < outputDimensionOfPreviousLayer + 1; j++)
@@ -48,9 +51,17 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
             return weightedInput;
         }
 
+        public abstract float[] GetActivation(float[] weightedInput);
+
         public float[] Feedforward(float[] input)
         {
             return GetActivation(GetWeightedInput(input));
+        }
+
+        public IForwardPropData ForwardProp(float[] previousActivations)
+        {
+            var weightedInputs = GetWeightedInput(previousActivations);
+            return new FullyConnectedForwardPropData(weightedInputs, GetActivation(weightedInputs));
         }
 
         public void UpdateParameters(float[] costGradient)
@@ -59,7 +70,5 @@ namespace NeuralNetworksAndDeepLearning.Convolutional
                 for (int j = 0; j < InputDimension + 1; j++, c++)
                     WeightMatrix[i, j] += costGradient[c];
         }
-
-        public abstract float[] GetActivation(float[] weightedInput);
     }
 }

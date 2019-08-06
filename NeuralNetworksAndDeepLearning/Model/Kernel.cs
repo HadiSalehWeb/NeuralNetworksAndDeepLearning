@@ -1,6 +1,7 @@
-﻿using System;
+﻿using NeuralNetworksAndDeepLearning.Util;
+using System;
 
-namespace NeuralNetworksAndDeepLearning.Convolutional
+namespace NeuralNetworksAndDeepLearning.Model
 {
     public struct Kernel
     {
