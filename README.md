@@ -1,5 +1,5 @@
 # NeuralNetworksAndDeepLearning
-The Hello World of machine learning, recognizing handwritten digits from the MNIST dataset using neural networks and backpropagation.
+Classifier for recognizing handwritten digits from the MNIST dataset using neural networks and backpropagation.
 
 ### References:
 1. [Michael A. Nielsen, "Neural Networks and Deep Learning".](http://neuralnetworksanddeeplearning.com/index.html)
